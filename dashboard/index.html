@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BW6 AI Triage — Live</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font: 14px/1.45 -apple-system, Segoe UI, Helvetica, Arial, sans-serif; background:#0f1216; color:#e6e8eb; margin:0; padding:24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color:#8a94a3; margin-bottom: 20px; font-size: 13px; }
+  .stats { display:grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+  .card { background:#171b21; border:1px solid #232831; border-radius:10px; padding:14px 16px; }
+  .card .lbl { color:#8a94a3; font-size: 11px; text-transform: uppercase; letter-spacing:.06em; }
+  .card .val { font-size: 28px; font-weight: 600; margin-top: 4px; }
+  .card.good .val { color:#4ade80; }
+  .card.warn .val { color:#f59e0b; }
+  .card.bad  .val { color:#ef4444; }
+  .card.info .val { color:#60a5fa; }
+  table { width:100%; border-collapse: collapse; background:#171b21; border:1px solid #232831; border-radius:10px; overflow:hidden; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid #232831; font-size: 13px; vertical-align: top; }
+  th { background:#1d222a; color:#c3c9d2; font-weight:600; position: sticky; top:0; }
+  tr:last-child td { border-bottom:0; }
+  .pill { display:inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.new  { background:#143d22; color:#4ade80; }
+  .pill.dup  { background:#3b2e0b; color:#f59e0b; }
+  .pill.lowc { background:#2a1a3d; color:#c084fc; }
+  .pill.p1   { background:#3d1414; color:#ef4444; }
+  .pill.p2   { background:#2b2410; color:#fbbf24; }
+  .pill.p3   { background:#17262e; color:#60a5fa; }
+  .pill.p4   { background:#1d222a; color:#8a94a3; }
+  .muted { color:#8a94a3; }
+  .row { display:flex; gap:20px; }
+  .col { flex:1; min-width:0; }
+  .col h2 { font-size: 14px; margin:0 0 8px; color:#c3c9d2; }
+  code { background:#0b0d11; padding:1px 6px; border-radius:4px; color:#c3c9d2; }
+  button { background:#1f2937; color:#e6e8eb; border:1px solid #2b3543; padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; }
+  button:hover { background:#293342; }
+  /* work-notes timeline */
+  .notes-toggle { background:none; border:none; color:#60a5fa; cursor:pointer; font-size:11px; padding:0; margin-top:3px; }
+  .notes-toggle:hover { color:#93c5fd; }
+  .notes-list { margin:6px 0 0 0; padding:0; list-style:none; display:none; }
+  .notes-list.open { display:block; }
+  .notes-list li { position:relative; padding: 5px 8px 5px 18px; margin-bottom:4px;
+                   background:#0f1216; border-left: 2px solid #2d3748; border-radius:0 6px 6px 0; font-size:12px; }
+  .notes-list li::before { content:''; position:absolute; left:-5px; top:10px;
+                            width:7px; height:7px; border-radius:50%; background:#374151; }
+  .notes-list li.note-new::before  { background:#4ade80; }
+  .notes-list li.note-dup::before  { background:#f59e0b; }
+  .notes-list li.note-lowc::before { background:#c084fc; }
+  .notes-list li.note-bad::before  { background:#ef4444; }
+  .note-time { color:#8a94a3; font-size:11px; margin-right:6px; }
+  .note-text  { color:#c3c9d2; }
+</style>
+</head>
+<body>
+  <h1>AI Triage Agnet — Live Dashboard</h1>
+  <div class="sub">Polling <code id="sn-url">http://localhost:8081</code> every 2s — <button onclick="resetAll()">Reset demo</button></div>
+
+  <div class="stats">
+    <div class="card info"><div class="lbl">Incidents total</div><div class="val" id="v-total">0</div></div>
+    <div class="card good"><div class="lbl">Created (unique)</div><div class="val" id="v-created">0</div></div>
+    <div class="card warn"><div class="lbl">Duplicates merged</div><div class="val" id="v-merged">0</div></div>
+    <div class="card bad"><div class="lbl">Bad data rejected</div><div class="val" id="v-rejected">0</div></div>
+    <div class="card good"><div class="lbl">Noise reduction</div><div class="val" id="v-reduction">0%</div></div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <h2>Incidents (most recent first)</h2>
+      <table>
+        <thead><tr>
+          <th>Number</th><th>Sev</th><th>Error</th><th>App</th><th>Node/Process</th><th>Occ.</th><th>Conf.</th><th>Last seen</th><th>Work Notes</th>
+        </tr></thead>
+        <tbody id="tbody-incidents"><tr><td colspan="9" class="muted">No incidents yet.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="col" style="max-width:420px">
+      <h2>Rejected (bad data)</h2>
+      <table>
+        <thead><tr><th>At</th><th>Reason</th><th>CorrelationId</th></tr></thead>
+        <tbody id="tbody-rejected"><tr><td colspan="3" class="muted">None.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const SN = location.search.includes('sn=') ? decodeURIComponent(location.search.split('sn=')[1]) : 'http://localhost:8081';
+document.getElementById('sn-url').textContent = SN;
+
+function sevClass(s) {
+  if (!s) return 'p4';
+  if (s.startsWith('1')) return 'p1';
+  if (s.startsWith('2')) return 'p2';
+  if (s.startsWith('3')) return 'p3';
+  return 'p4';
+}
+
+function noteClass(text) {
+  const t = (text || '').toLowerCase();
+  if (t.includes('low conf') || t.includes('human') || t.includes('flagged')) return 'note-lowc';
+  if (t.includes('merged') || t.includes('duplicate') || t.includes('occurrence')) return 'note-dup';
+  if (t.includes('created') || t.includes('new incident')) return 'note-new';
+  if (t.includes('reject') || t.includes('bad data') || t.includes('invalid')) return 'note-bad';
+  return '';
+}
+
+function renderNotes(notes, incNum) {
+  if (!notes || !notes.length) return '<span class="muted" style="font-size:11px">—</span>';
+  const id = 'notes-' + incNum;
+  const latest = notes[notes.length - 1];
+  const items = [...notes].reverse().map(n => {
+    const cls = noteClass(n.note);
+    return `<li class="${cls}"><span class="note-time">${new Date(n.at).toLocaleTimeString()}</span><span class="note-text">${escHtml(n.note)}</span></li>`;
+  }).join('');
+  return `
+    <div>
+      <span class="pill ${notes.length > 1 ? 'dup' : 'new'}" style="margin-right:4px">${notes.length} note${notes.length > 1 ? 's' : ''}</span>
+      <button class="notes-toggle" onclick="toggleNotes('${id}')">▶ show</button>
+      <div style="font-size:11px;color:#8a94a3;margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(latest.note)}</div>
+      <ul id="${id}" class="notes-list">${items}</ul>
+    </div>`;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleNotes(id) {
+  const el = document.getElementById(id);
+  const btn = el.previousElementSibling.previousElementSibling;
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? '▼ hide' : '▶ show';
+}
+
+async function load() {
+  try {
+    const [stats, incRes, rejRes] = await Promise.all([
+      fetch(`${SN}/api/now/stats`).then(r => r.json()),
+      fetch(`${SN}/api/now/table/incident?sysparm_limit=50`).then(r => r.json()),
+      fetch(`${SN}/api/now/rejected`).then(r => r.json())
+    ]);
+    document.getElementById('v-total').textContent = stats.incidents_total;
+    document.getElementById('v-created').textContent = stats.incidents_created;
+    document.getElementById('v-merged').textContent = stats.duplicates_merged;
+    document.getElementById('v-rejected').textContent = stats.bad_data_rejected;
+    document.getElementById('v-reduction').textContent = stats.noise_reduction_pct + '%';
+
+    const tb = document.getElementById('tbody-incidents');
+    const rows = (incRes.result || []).map(i => `
+      <tr>
+        <td><code>${i.number}</code></td>
+        <td><span class="pill ${sevClass(i.severity)}">${(i.severity||'').split(' ')[0] || '-'}</span></td>
+        <td>${i.u_error_code||'-'}</td>
+        <td>${i.u_app_name||'-'}</td>
+        <td class="muted">${i.u_app_node||'-'}<br>${i.u_process_name||''}</td>
+        <td>${i.u_occurrence_count}${i.u_occurrence_count > 1 ? ' <span class="pill dup">dup</span>' : ' <span class="pill new">new</span>'}</td>
+        <td>${i.u_agent_confidence != null ? (() => { const c = Number(i.u_agent_confidence); return `<span class="${c < 0.75 ? 'pill lowc' : ''}">${c.toFixed(2)}</span>`; })() : '-'}</td>
+        <td class="muted">${new Date(i.u_last_seen).toLocaleTimeString()}</td>
+        <td>${renderNotes(i.work_notes, i.number)}</td>
+      </tr>`).join('');
+    tb.innerHTML = rows || `<tr><td colspan="9" class="muted">No incidents yet.</td></tr>`;
+
+    const rt = document.getElementById('tbody-rejected');
+    const rrows = (rejRes.result || []).slice().reverse().map(r => `
+      <tr>
+        <td class="muted">${new Date(r.at).toLocaleTimeString()}</td>
+        <td>${r.reason||'-'}</td>
+        <td class="muted">${(r.event && r.event.correlationId) || '-'}</td>
+      </tr>`).join('');
+    rt.innerHTML = rrows || `<tr><td colspan="3" class="muted">None.</td></tr>`;
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+async function resetAll() {
+  await fetch(`${SN}/api/now/reset`, { method:'POST' });
+  load();
+}
+
+load();
+setInterval(load, 2000);
+</script>
+</body>
+</html>
