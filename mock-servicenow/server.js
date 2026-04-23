@@ -210,6 +210,7 @@ app.post('/api/simulator/run', (req, res) => {
         `--mode=${safeMode}`,
         `--count=${safeCount}`,
         `--delayMs=${safeDelay}`,
+        `--bypassTarget=http://localhost:${PORT}/api/now/table/incident`,
     ];
     if (safeTarget) args.push(`--target=${safeTarget}`);
     if (bypass) args.push('--bypass');

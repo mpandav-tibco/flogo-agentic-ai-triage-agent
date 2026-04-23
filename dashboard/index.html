@@ -78,8 +78,16 @@
   .note-text  { color:#c3c9d2; }
   /* ---- Simulator panel ---- */
   .sim-panel { background:#171b21; border:1px solid #232831; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
-  .sim-panel-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-  .sim-panel-header h2 { font-size:14px; color:#c3c9d2; margin:0; }
+  .sim-panel-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; cursor:pointer; user-select:none; }
+  .sim-panel-header:hover h2 { color:#e6e8eb; }
+  .sim-panel-header h2 { font-size:14px; color:#c3c9d2; margin:0; transition:color .15s; }
+  .sim-collapse-btn { margin-left:auto; background:none; border:none; color:#545d6b; font-size:15px;
+    cursor:pointer; padding:0 4px; line-height:1; transition:transform .25s, color .15s; }
+  .sim-panel-header:hover .sim-collapse-btn { color:#c3c9d2; }
+  .sim-panel.collapsed .sim-collapse-btn { transform:rotate(-90deg); }
+  .sim-body { overflow:hidden; transition:max-height .3s ease, opacity .2s ease; max-height:800px; opacity:1; }
+  .sim-panel.collapsed .sim-body { max-height:0; opacity:0; pointer-events:none; }
+  .sim-panel.collapsed .sim-panel-header { margin-bottom:0; }
   .sim-status { font-size:11px; padding:2px 8px; border-radius:999px; }
   .sim-status.running { background:#1a3010; color:#4ade80; animation:pulse 2s infinite; }
   .sim-status.idle    { color:#545d6b; }
@@ -128,11 +136,13 @@
   </div>
 
   <!-- ====== Simulator Control Panel ====== -->
-  <div class="sim-panel" style="margin-bottom:20px">
-    <div class="sim-panel-header">
+  <div class="sim-panel" id="sim-panel" style="margin-bottom:20px">
+    <div class="sim-panel-header" onclick="toggleSimPanel()">
       <h2>Error Simulator</h2>
       <span class="sim-status idle" id="sim-status">idle</span>
+      <button class="sim-collapse-btn" id="sim-collapse-btn" title="Collapse simulator">&#x25BE;</button>
     </div>
+    <div class="sim-body" id="sim-body">
     <div class="sim-controls">
       <div class="sim-group">
         <label>Mode</label>
@@ -176,6 +186,7 @@
              placeholder="http://localhost:8080/triage" />
     </div>
     <div class="sim-log" id="sim-log"><span class="l-placeholder">Output will appear here…</span></div>
+    </div><!-- /sim-body -->
   </div>
 
   <h2 style="font-size:22px;color:#c3c9d2;margin:0 0 12px">Live Dashboard</h2>
@@ -352,6 +363,11 @@ setInterval(load, 2000);
 let simMode = 'storm';
 let simAbortCtrl = null;
 
+function toggleSimPanel() {
+  const panel = document.getElementById('sim-panel');
+  panel.classList.toggle('collapsed');
+}
+
 function setSimMode(m) {
   simMode = m;
   ['storm', 'edge', 'single'].forEach(id =>
@@ -431,6 +447,8 @@ function simLogDone(exitInfo) {
     + (failed ? ` · <span class="l-err">${failed} failed</span>` : '')
     + ` · ${elapsed}s`
     + `</span>`;
+  // Auto-collapse the simulator panel so the dashboard comes into focus
+  setTimeout(() => document.getElementById('sim-panel').classList.add('collapsed'), 1200);
 }
 
 async function runSimulator() {

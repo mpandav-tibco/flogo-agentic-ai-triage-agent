@@ -11,8 +11,8 @@
         "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
         "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
     ],
-    "name": "bw6-ticket-triage-agent",
-    "description": "AI-powered triage for BW6 CE error events. The AI agent uses MCP tools (exposed by bw6-sn-mcp-wrapper) to search, create, merge, or reject ServiceNow incidents autonomously.",
+    "name": "ticket-triage-agent",
+    "description": "AI-powered triage for integration error events. The AI agent uses MCP tools (exposed by sn-mcp-wrapper) to search, create, merge, or reject ServiceNow incidents autonomously.",
     "version": "1.0.0",
     "type": "flogo:app",
     "appModel": "1.1.1",
@@ -214,7 +214,7 @@
                         }
                     }
                 ],
-                "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ0V2ZW50Ijp7IngiOjQxLCJ5IjoxNTN9LCJUcmlhZ2VBZ2VudCI6eyJ4IjoyNTksInkiOjE2NH0sIkF1ZGl0TG9nIjp7IngiOjQ2OCwieSI6MTY1fSwiUmV0dXJuIjp7IngiOjYyMiwieSI6NDl9fQ==",
+                "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ0V2ZW50Ijp7IngiOjE1MSwieSI6NDN9LCJUcmlhZ2VBZ2VudCI6eyJ4IjozNDcsInkiOjQwfSwiQXVkaXRMb2ciOnsieCI6NTQ3LCJ5Ijo0MH0sIlJldHVybiI6eyJ4Ijo3NDksInkiOjQwfX0=",
                 "metadata": {
                     "input": [
                         {
@@ -274,7 +274,7 @@
         {
             "name": "AgenticAI.LLMConn.API_Key",
             "type": "string",
-            "value": "SECRET:pK2crfszp4bRNXxNRFe7aiq961cIeH6F3/LtSNnoMt49KJmJQZk6NbMZ67gs23EKdsgpYX3SoTjGHTEnCVkQb6TuMZHmpMpfug=="
+            "value": "SECRET:Z/NDrHR6qSpQf3gQgGgbpkvP8iicUqdOqudfJXVV0KEwOxMYx3si/x/2iTlgNSabK1Qi9+kCik29tFX5+wu8OzCflTutJeD6nQ=="
         },
         {
             "name": "AgenticAI.LLMConn.LLM_Base_URL",
@@ -335,21 +335,21 @@
             }
         }
     },
-    "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4wIiwidGFnIjoiMC45LjAtYjAzIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+    "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTMiLCJ0YWciOiIxLjYuMTMtYjAzIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4xIiwidGFnIjoiMC45LjEtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
     "metadata": {
         "endpoints": [
             {
                 "protocol": "http",
                 "port": "8080",
                 "spec": {
-                    "name": "bw6-ticket-triage-agent",
+                    "name": "ticket-triage-agent",
                     "version": "1.0.0"
                 },
                 "title": "TriageHTTPTrigger",
                 "swagger": {
                     "swagger": "2.0",
                     "info": {
-                        "title": "bw6-ticket-triage-agent",
+                        "title": "ticket-triage-agent",
                         "version": "1.0.0",
                         "description": "Triage REST trigger (POST /triage)"
                     },
@@ -455,6 +455,6 @@
                 }
             }
         ],
-        "flogoVersion": "2.26.2"
+        "flogoVersion": "2.26.3"
     }
 }

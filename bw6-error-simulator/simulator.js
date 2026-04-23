@@ -114,18 +114,18 @@ function genEdge() {
     return [
         // 1. REST 500 on PaymentService/ChargeCard (new) — seeds the candidate for event 2
         buildEvent(e3),
-        // 2. LOW-CONFIDENCE (fires 2nd): same app + errorCode + SAME downstream domain BUT
-        //    different processName & different path — LLM is genuinely uncertain whether this
-        //    is the same Stripe gateway failing on another endpoint, or a separate integration.
-        //    Agent should score conf < 0.75 → opens new ticket + warns on INC from event 1
+        // 2. LOW-CONFIDENCE: same app + same errorCode BUT different processName AND completely
+        //    different downstream service (fraud-check.internal vs partner.stripe.example).
+        //    The pre-seeded ChargeCard incident is guaranteed to be in the store, so the search
+        //    returns N=1. The agent scores LOW conf (<0.75) → creates new ticket + warns on seed.
         buildEvent(e3, {
             appNode: 'paymentservice-appnode-7',
             processName: 'PaymentFlow.process.FraudScreening',
             activityName: 'InvokeRESTService',
             errorCode: 'BW-REST-500',
-            errorMsg: 'Downstream service returned HTTP 500 Internal Server Error from https://partner.stripe.example/fraud-screen — upstream gateway error',
+            errorMsg: 'Downstream service returned HTTP 500 Internal Server Error from https://fraud-check.internal/screen — fraud screening service unavailable',
             severity: '2 - High',
-            stackTrace: 'com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)\nCaused by: java.io.IOException: Server returned HTTP response code: 500 for URL: https://partner.stripe.example/fraud-screen'
+            stackTrace: 'com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)\nCaused by: java.io.IOException: Server returned HTTP response code: 500 for URL: https://fraud-check.internal/screen'
         }),
         // 3. JDBC timeout on OrderService (new)
         buildEvent(e1),
@@ -198,6 +198,37 @@ async function run() {
 
     const destination = BYPASS ? BYPASS_TARGET : TARGET;
     console.log(`[simulator] mode=${MODE} count=${events.length} target=${destination} bypass=${BYPASS}`);
+
+    // Edge mode (non-bypass): pre-seed the ChargeCard incident DIRECTLY into the ServiceNow
+    // store before any events reach the triage agent. This guarantees the agent always finds
+    // a candidate when the FraudScreening (low-confidence) event arrives, regardless of how
+    // long the LLM takes to process event 1. Without this, the 200ms inter-event delay means
+    // event 2 arrives while event 1's LLM call (3-10s) is still in flight → search returns
+    // N=0 → agent creates NEW with conf=1.0 instead of the intended low-confidence path.
+    if (MODE === 'edge' && !BYPASS) {
+        const e3 = CATALOG.find(c => c.id === 'E3');
+        const seed = buildEvent(e3, { appNode: `${e3.appNodePrefix}-seed` });
+        const seedIncident = {
+            short_description: `[${seed.errorCode}] ${seed.appName} - ${seed.activityName}`,
+            description: seed.errorMsg,
+            severity: seed.severity,
+            u_error_code: seed.errorCode,
+            u_app_name: seed.appName,
+            u_app_node: seed.appNode,
+            u_process_name: seed.processName,
+            u_activity_name: seed.activityName,
+            u_correlation_id: seed.correlationId,
+            u_decision_source: 'agent-new',
+            u_agent_confidence: 1.0,
+            u_triage_reason: 'Pre-existing ChargeCard incident (seeded for edge scenario)'
+        };
+        try {
+            await post(BYPASS_TARGET, seedIncident);
+            console.log(`  [edge-seed] pre-seeded ChargeCard incident in ServiceNow store`);
+        } catch (e) {
+            console.error(`  ! edge-seed failed: ${e.message} — low-confidence event may not trigger correctly`);
+        }
+    }
 
     let ok = 0, fail = 0;
     for (const evt of events) {
