@@ -134,16 +134,18 @@ The dashboard polls `http://localhost:8081` every 2 seconds and shows live stats
 ---
 
 ## 📊 Live Dashboard & Simulator
+`dashboard/index.html` is a single self-contained file — open it in any browser. It does everything: runs the simulator, streams results live, and displays the full incident table. No extra tooling required once the three services are running.
 
 ![AI Triage Agent Live Dashboard & Error Simulator](images/image-3.png)
 
-`dashboard/index.html` is a single self-contained file — open it in any browser. It does everything: runs the simulator, streams results live, and displays the full incident table. No extra tooling required once the three services are running.
+
 
 ### Error Simulator panel
 
 The top section of the dashboard is a built-in simulator control panel. You never need to open a separate terminal for demo runs.
 
 <img width="1137" height="248" alt="image" src="https://github.com/user-attachments/assets/07b87e7a-f5c8-4a29-a0e8-44b5724a97e0" />
+
 
 | Control | What it does |
 |---|---|
@@ -162,6 +164,7 @@ Click the panel header at any time to manually collapse or expand it.
 ### Incident table
 
 <img width="2553" height="398" alt="image" src="https://github.com/user-attachments/assets/09009a8f-4afb-4c73-bf73-7d1d6cb9be1d" />
+
 
 | Column | What it shows |
 |---|---|
