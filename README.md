@@ -89,7 +89,7 @@ coming soon...
 ### Prerequisites
 
 - **Node.js** v18 or higher
-- **Ollama** running locally with `llama3` or `mistral` pulled
+- **Ollama** running locally with `llama3` or `deepseek-v3.1:671b-cloud` pulled
   *(or set `OPENAI_API_KEY` / `AZURE_OPENAI_*` env vars for cloud LLMs)*
 - Pre-built binaries are included in `bin/` — no Go or Flogo CLI needed
 
