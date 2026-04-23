@@ -1,6 +1,6 @@
 # AI-Powered Incident Triage with Flogo Agentic AI
 
-> **Stop drowning in duplicate tickets.** A Flogo AI Agent watches your TIBCO BusinessWorks 6 error stream, reasons about each event, and cuts ServiceNow ticket noise by ~90% — automatically.
+> **Stop drowning in duplicate tickets.** A Flogo AI Agent watches your integration error stream, reasons about each event, and cuts ServiceNow ticket noise by ~90% — automatically.
 
 ---
 
