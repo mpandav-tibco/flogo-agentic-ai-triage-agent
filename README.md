@@ -200,6 +200,9 @@ In the simulator panel:
 
 Watch the dashboard: **50 tickets in ~30 seconds**. This is the customer's daily pain.
 
+<img width="1631" height="646" alt="image" src="https://github.com/user-attachments/assets/9476eed9-e3de-4232-816b-bf17394b5245" /></br></br>
+
+
 Or from the terminal:
 ```bash
 node bw6-error-simulator/simulator.js --mode=storm --count=50 --delayMs=50 --bypass
@@ -228,6 +231,10 @@ Expected result:
 | Bad data rejected | 2 |
 | **Noise reduction** | **~94%** |
 
+
+<img width="2204" height="349" alt="image" src="https://github.com/user-attachments/assets/3f3f1f0f-5335-4446-9f06-2bd30c10bec6" />
+
+
 Expand any incident row to read the agent's work notes and confidence score.
 
 ### Scenario C — Edge cases
@@ -244,6 +251,10 @@ What to watch:
 | Event 2 — FraudScreening | **agent·low-conf** (red bar) | Same app + same error code, different downstream service — agent opens new ticket and warns on the original |
 | Event 5 — JDBC on PaymentService | **agent·new** | Same error code as OrderService already in store, but different app = separate incident. Rule engines merge these. |
 | Event 7 — empty payload | **BAD_DATA** | Rejected cleanly; never touches the incident queue |
+
+<img width="1773" height="595" alt="image" src="https://github.com/user-attachments/assets/2db0e9ff-fc40-4819-9fe7-fb6fc98ec6fa" />
+
+
 
 ---
 
