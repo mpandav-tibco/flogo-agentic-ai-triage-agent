@@ -70,8 +70,8 @@ function buildBadData() {
 }
 
 // ---- event generators ----
-function genSingle() {
-    return [buildEvent(pick(CATALOG))];
+function genSingle(n) {
+    return Array.from({ length: n }, () => buildEvent(pick(CATALOG)));
 }
 
 function genStorm(n) {
@@ -107,29 +107,15 @@ function genStorm(n) {
 }
 
 function genEdge() {
-    // Curated edge cases:
+    // Curated edge cases — ordered so the LOW-CONFIDENCE event fires as early as possible (position 2).
+    // Event 1 (ChargeCard REST-500) must exist first so the agent has a candidate to compare against.
     const e1 = CATALOG.find(c => c.id === 'E1');
     const e3 = CATALOG.find(c => c.id === 'E3');
     return [
-        // 1. A JDBC timeout on OrderService (new)
-        buildEvent(e1),
-        // 2. Same JDBC timeout on OrderService again (should be duplicate)
-        buildEvent(e1),
-        // 3. Same JDBC timeout BUT on PaymentService (sneaky NEW - different app)
-        buildEvent(e1, {
-            appName: 'PaymentService',
-            appNode: 'paymentservice-appnode-2',
-            processName: 'PaymentFlow.process.PersistTransaction'
-        }),
-        // 4. REST 500 on same app/process (clear new incident)
+        // 1. REST 500 on PaymentService/ChargeCard (new) — seeds the candidate for event 2
         buildEvent(e3),
-        // 5. Obvious duplicate of event 4 — same process, same message
-        buildEvent(e3),
-        // 6. LOW-CONFIDENCE: same app + errorCode (BW-REST-500, PaymentService),
-        //    BUT different processName (FraudScreening vs ChargeCard) AND different
-        //    downstream URL (fraud-check.internal vs stripe.example).
-        //    Hits BOTH low-conf criteria from the rubric → agent must score conf < 0.75
-        //    and open a new ticket rather than silently merging.
+        // 2. LOW-CONFIDENCE (fires 2nd): same app + errorCode BUT different processName & downstream URL
+        //    Agent scores conf < 0.75 → opens new ticket + warns on INC from event 1
         buildEvent(e3, {
             appNode: 'paymentservice-appnode-7',
             processName: 'PaymentFlow.process.FraudScreening',
@@ -139,6 +125,18 @@ function genEdge() {
             severity: '2 - High',
             stackTrace: 'com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)\nCaused by: java.io.IOException: Server returned HTTP response code: 500 for URL: https://fraud-check.internal/screen'
         }),
+        // 3. JDBC timeout on OrderService (new)
+        buildEvent(e1),
+        // 4. Same JDBC timeout on OrderService again (duplicate)
+        buildEvent(e1),
+        // 5. Same JDBC timeout BUT on PaymentService (sneaky NEW — different app, different owner)
+        buildEvent(e1, {
+            appName: 'PaymentService',
+            appNode: 'paymentservice-appnode-2',
+            processName: 'PaymentFlow.process.PersistTransaction'
+        }),
+        // 6. Obvious duplicate of event 1 — same process, same message
+        buildEvent(e3),
         // 7. Bad data
         buildBadData()
     ];
@@ -190,8 +188,11 @@ function toBypassIncident(evt) {
 async function run() {
     let events;
     if (MODE === 'storm') events = genStorm(COUNT);
-    else if (MODE === 'edge') events = genEdge();
-    else events = genSingle();
+    else if (MODE === 'edge') {
+        const script = genEdge();
+        events = Array.from({ length: COUNT }, (_, i) => ({ ...script[i % script.length], correlationId: cid() }));
+    }
+    else events = genSingle(COUNT);
 
     const destination = BYPASS ? BYPASS_TARGET : TARGET;
     console.log(`[simulator] mode=${MODE} count=${events.length} target=${destination} bypass=${BYPASS}`);

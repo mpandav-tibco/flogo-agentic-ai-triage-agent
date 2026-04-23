@@ -373,7 +373,7 @@ Open `dashboard/index.html` in your browser. Keep it visible throughout.
 **Talk track:** *"This is the baseline — no intelligence, no triage. Every integration error from the S/4HANA migration flows directly into ServiceNow as a new ticket. Watch the queue fill up."*
 
 ```bash
-# bypass=true sends events DIRECTLY to ServiceNow, skipping the agent
+# --bypass sends events DIRECTLY to ServiceNow, skipping the agent
 node bw6-error-simulator/simulator.js --mode=storm --count=50 --delayMs=50 --bypass
 ```
 

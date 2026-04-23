@@ -14,6 +14,10 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const { spawn } = require('child_process');
+const path = require('path');
+
+const SIMULATOR_PATH = path.join(__dirname, '..', 'bw6-error-simulator', 'simulator.js');
 
 const app = express();
 app.use(cors());
@@ -26,6 +30,25 @@ const incidents = new Map(); // sys_id -> incident
 const rejected = [];         // bad-data audit trail
 let counter = 1000;
 
+// Fallback severity by error-code prefix when the agent doesn't forward the field
+const ERROR_CODE_SEVERITY = {
+    'BW-CORE-OOM': '1 - Critical',
+    'BW-JDBC': '2 - High',
+    'BW-JMS': '2 - High',
+    'BW-REST-500': '3 - Moderate',
+    'BW-HTTP-404': '4 - Low',
+    'BW-XML-PARSE': '3 - Moderate',
+};
+
+function resolveSeverity(payload) {
+    if (payload.severity) return payload.severity;
+    const code = (payload.u_error_code || '').toUpperCase();
+    for (const [prefix, sev] of Object.entries(ERROR_CODE_SEVERITY)) {
+        if (code.startsWith(prefix)) return sev;
+    }
+    return '3 - Moderate';
+}
+
 function newIncident(payload) {
     const sys_id = crypto.randomUUID();
     const number = `INC${String(++counter).padStart(7, '0')}`;
@@ -35,7 +58,7 @@ function newIncident(payload) {
         number,
         state: 'New',                 // New | In Progress | Resolved | Closed
         active: true,
-        severity: payload.severity || '3 - Moderate',
+        severity: resolveSeverity(payload),
         short_description: payload.short_description || '',
         description: payload.description || '',
         u_error_code: payload.u_error_code || '',
@@ -139,10 +162,11 @@ app.post('/api/now/reject', (req, res) => {
 
 app.get('/api/now/stats', (req, res) => {
     const all = Array.from(incidents.values());
-    const created = all.filter(i => i.u_decision_source === 'agent-new' || i.u_decision_source === 'manual').length;
+    const created = all.length; // every incident in the store is a distinct created ticket
     const merges = all.reduce((sum, i) => sum + Math.max(0, i.u_occurrence_count - 1), 0);
     res.json({
         incidents_total: all.length,
+        events_received: created + merges + rejected.length,
         incidents_created: created,
         duplicates_merged: merges,
         bad_data_rejected: rejected.length,
@@ -162,6 +186,59 @@ app.post('/api/now/reset', (req, res) => {
 app.get('/api/now/rejected', (req, res) => res.json({ result: rejected }));
 
 app.get('/health', (req, res) => res.json({ status: 'up', service: 'mock-servicenow' }));
+
+// --- Simulator runner (SSE) ---
+const ALLOWED_SIM_MODES = new Set(['single', 'storm', 'edge']);
+
+app.post('/api/simulator/run', (req, res) => {
+    const { mode, count, delayMs, bypass, target } = req.body || {};
+
+    const safeMode = ALLOWED_SIM_MODES.has(mode) ? mode : 'single';
+    const safeCount = Math.min(200, Math.max(1, parseInt(count, 10) || 10));
+    const safeDelay = Math.min(5000, Math.max(0, parseInt(delayMs, 10) || 200));
+    // validate target is a localhost/127.0.0.1 URL to prevent SSRF
+    let safeTarget = null;
+    if (target) {
+        try {
+            const u = new URL(target);
+            if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') safeTarget = target;
+        } catch { }
+    }
+
+    const args = [
+        SIMULATOR_PATH,
+        `--mode=${safeMode}`,
+        `--count=${safeCount}`,
+        `--delayMs=${safeDelay}`,
+    ];
+    if (safeTarget) args.push(`--target=${safeTarget}`);
+    if (bypass) args.push('--bypass');
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const send = (type, text) => { if (!res.writableEnded) res.write(`data: ${JSON.stringify({ type, text })}\n\n`); };
+
+    const proc = spawn(process.execPath, args);
+    let procExited = false;
+
+    proc.stdout.on('data', data =>
+        data.toString().split('\n').forEach(l => l.trim() && send('out', l)));
+
+    proc.stderr.on('data', data =>
+        data.toString().split('\n').forEach(l => l.trim() && send('err', l)));
+
+    proc.on('close', (code, signal) => {
+        procExited = true;
+        send('done', `Exited with code ${code !== null ? code : signal}`);
+        if (!res.writableEnded) res.end();
+    });
+
+    // Only kill the process if the client disconnects while it is still running
+    res.on('close', () => { if (!procExited) proc.kill(); });
+});
 
 app.listen(PORT, () => {
     console.log(`[mock-servicenow] listening on http://localhost:${PORT}`);
