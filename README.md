@@ -143,6 +143,8 @@ The dashboard polls `http://localhost:8081` every 2 seconds and shows live stats
 
 The top section of the dashboard is a built-in simulator control panel. You never need to open a separate terminal for demo runs.
 
+<img width="1137" height="248" alt="image" src="https://github.com/user-attachments/assets/07b87e7a-f5c8-4a29-a0e8-44b5724a97e0" />
+
 | Control | What it does |
 |---|---|
 | **Storm** mode | Blasts N events with heavy duplication — proves noise reduction |
@@ -158,6 +160,8 @@ The top section of the dashboard is a built-in simulator control panel. You neve
 Click the panel header at any time to manually collapse or expand it.
 
 ### Incident table
+
+<img width="2553" height="398" alt="image" src="https://github.com/user-attachments/assets/09009a8f-4afb-4c73-bf73-7d1d6cb9be1d" />
 
 | Column | What it shows |
 |---|---|
