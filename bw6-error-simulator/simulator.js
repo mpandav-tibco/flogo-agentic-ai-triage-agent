@@ -114,16 +114,18 @@ function genEdge() {
     return [
         // 1. REST 500 on PaymentService/ChargeCard (new) — seeds the candidate for event 2
         buildEvent(e3),
-        // 2. LOW-CONFIDENCE (fires 2nd): same app + errorCode BUT different processName & downstream URL
-        //    Agent scores conf < 0.75 → opens new ticket + warns on INC from event 1
+        // 2. LOW-CONFIDENCE (fires 2nd): same app + errorCode + SAME downstream domain BUT
+        //    different processName & different path — LLM is genuinely uncertain whether this
+        //    is the same Stripe gateway failing on another endpoint, or a separate integration.
+        //    Agent should score conf < 0.75 → opens new ticket + warns on INC from event 1
         buildEvent(e3, {
             appNode: 'paymentservice-appnode-7',
             processName: 'PaymentFlow.process.FraudScreening',
             activityName: 'InvokeRESTService',
             errorCode: 'BW-REST-500',
-            errorMsg: 'Downstream service returned HTTP 500 Internal Server Error from https://fraud-check.internal/screen — fraud screening service unavailable',
+            errorMsg: 'Downstream service returned HTTP 500 Internal Server Error from https://partner.stripe.example/fraud-screen — upstream gateway error',
             severity: '2 - High',
-            stackTrace: 'com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)\nCaused by: java.io.IOException: Server returned HTTP response code: 500 for URL: https://fraud-check.internal/screen'
+            stackTrace: 'com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)\nCaused by: java.io.IOException: Server returned HTTP response code: 500 for URL: https://partner.stripe.example/fraud-screen'
         }),
         // 3. JDBC timeout on OrderService (new)
         buildEvent(e1),

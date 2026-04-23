@@ -226,7 +226,7 @@ LOW confidence (< 0.75)
             + append warning note to original candidate
 ```
 
-The key insight: **the LLM evaluates semantic similarity, not string equality.** `stripe.example/v1/charge` and `stripe.example/v2/charge` are clearly the same downstream; `fraud-check.internal` and `stripe.example` clearly are not. No regex needed.
+The key insight: **the LLM evaluates semantic similarity, not string equality.** `stripe.example/v1/charge` and `stripe.example/v2/charge` are clearly the same downstream; `stripe.example/charge` and `stripe.example/fraud-screen` are ambiguous — same gateway, different endpoint, different process. That ambiguity is exactly what triggers low-confidence. No regex needed.
 
 ### The Low-Confidence Guardrail (Act 5)
 
@@ -455,11 +455,11 @@ Still in the edge run, watch events 4–6:
 
 - Event 4: `BW-REST-500`, `PaymentService/ChargeCard`, downstream `stripe.example` → **NEW** (`INC0001003`)
 - Event 5: Same → **DUP** (merged into `INC0001003`)
-- **Event 6**: `BW-REST-500`, `PaymentService/FraudScreening`, downstream `fraud-check.internal`
+- **Event 2**: `BW-REST-500`, `PaymentService/FraudScreening`, downstream `partner.stripe.example/fraud-screen`
 
 Event 6 hits both LOW-confidence criteria:
 - Different `processName` (`FraudScreening` vs `ChargeCard`)
-- Different downstream URL (`fraud-check.internal` vs `stripe.example`)
+- Different downstream path (`/fraud-screen` vs `/charge`) on the same `partner.stripe.example` domain — ambiguous root cause
 
 **Expected result:** The agent creates `INC0001004` with `u_decision_source=agent-low-confidence` AND appends a warning note on `INC0001003`.
 
