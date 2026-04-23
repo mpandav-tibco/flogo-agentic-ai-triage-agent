@@ -65,7 +65,7 @@ BW6 Error Event
 ```
 
 ## Technical Architecture
-![Solution Architecture](image-2.png)
+![Solution Architecture](images/image-2.png)
 
 ## 🎬 Demo Video
 ```
@@ -135,7 +135,7 @@ The dashboard polls `http://localhost:8081` every 2 seconds and shows live stats
 
 ## 📊 Live Dashboard & Simulator
 
-![AI Triage Agent Live Dashboard & Error Simulator](image-3.png)
+![AI Triage Agent Live Dashboard & Error Simulator](images/image-3.png)
 
 `dashboard/index.html` is a single self-contained file — open it in any browser. It does everything: runs the simulator, streams results live, and displays the full incident table. No extra tooling required once the three services are running.
 
