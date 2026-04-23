@@ -117,6 +117,8 @@ Return strict JSON:
 
 ## 📊 Live Metrics
 
+![AI Triage Agent Live Dashboard](image.png)
+
 | Metric | Baseline | With Agent |
 |--------|----------|------------|
 | Events ingested | 50 | 50 |
