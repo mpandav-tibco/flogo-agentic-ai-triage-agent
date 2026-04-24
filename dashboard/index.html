@@ -11,7 +11,7 @@
          background:#080b10; color:#e6e8eb; margin:0; padding:24px;
          position:relative; overflow-x:hidden; }
   #bg-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.7; }
-  body > *:not(#bg-canvas) { position:relative; z-index:1; }
+  body > *:not(#bg-canvas):not(.drawer-overlay):not(.drawer) { position:relative; z-index:1; }
   h1 { font-size: 22px; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
   .live-dot { width:9px; height:9px; border-radius:50%; background:#4ade80; flex-shrink:0;
               box-shadow:0 0 0 0 rgba(74,222,128,0.6); animation:pulse 2s infinite; }
@@ -76,6 +76,52 @@
   .notes-list li.note-bad::before  { background:#ef4444; }
   .note-time { color:#8a94a3; font-size:11px; margin-right:6px; }
   .note-text  { color:#c3c9d2; }
+  /* ---- Incident detail drawer ---- */
+  .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; opacity:0;
+    transition:opacity .25s; pointer-events:none; }
+  .drawer-overlay.open { opacity:1; pointer-events:all; }
+  .drawer { position:fixed; top:0; right:0; width:min(540px,92vw); height:100vh; overflow-y:auto;
+    background:#111520; border-left:1px solid #232831; z-index:101; padding:0;
+    transform:translateX(100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column; }
+  .drawer.open { transform:translateX(0); }
+  .drawer-header { display:flex; align-items:flex-start; gap:12px; padding:20px 24px 16px;
+    border-bottom:1px solid #232831; position:sticky; top:0; background:#111520; z-index:1; }
+  .drawer-header-info { flex:1; min-width:0; }
+  .drawer-inc-num { font-size:18px; font-weight:700; color:#e6e8eb; font-family:ui-monospace,monospace; }
+  .drawer-short-desc { font-size:12px; color:#8a94a3; margin-top:3px; word-break:break-all; }
+  .drawer-close { background:none; border:none; color:#545d6b; font-size:20px; cursor:pointer;
+    padding:0; line-height:1; flex-shrink:0; margin-top:2px; }
+  .drawer-close:hover { color:#e6e8eb; }
+  .drawer-body { padding:20px 24px; flex:1; }
+  .drawer-section { margin-bottom:22px; }
+  .drawer-section-title { font-size:11px; font-weight:600; color:#545d6b; text-transform:uppercase;
+    letter-spacing:.08em; margin-bottom:10px; }
+  .drawer-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .drawer-field { background:#171b21; border:1px solid #1d2430; border-radius:8px; padding:10px 12px; }
+  .drawer-field .lbl { font-size:10px; color:#545d6b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .drawer-field .val { font-size:13px; color:#e6e8eb; word-break:break-all; }
+  .drawer-field .val.mono { font-family:ui-monospace,monospace; font-size:12px; }
+  .drawer-field.full { grid-column:1/-1; }
+  .conf-big { display:flex; align-items:center; gap:10px; }
+  .conf-bar-big { flex:1; height:8px; border-radius:4px; background:#232831; overflow:hidden; }
+  .conf-fill-big { height:100%; border-radius:4px; }
+  .conf-score { font-size:22px; font-weight:700; color:#e6e8eb; }
+  .drawer-notes-list { list-style:none; padding:0; margin:0; }
+  .drawer-notes-list li { position:relative; padding:10px 12px 10px 22px;
+    margin-bottom:6px; background:#0f1216; border-left:3px solid #2d3748;
+    border-radius:0 8px 8px 0; font-size:12px; line-height:1.5; }
+  .drawer-notes-list li::before { content:''; position:absolute; left:-6px; top:14px;
+    width:8px; height:8px; border-radius:50%; background:#374151; }
+  .drawer-notes-list li.note-new::before  { background:#4ade80; }
+  .drawer-notes-list li.note-dup::before  { background:#f59e0b; }
+  .drawer-notes-list li.note-lowc::before { background:#c084fc; }
+  .drawer-notes-list li.note-bad::before  { background:#ef4444; }
+  .stack-trace { background:#0b0d11; border:1px solid #1d2430; border-radius:8px; padding:12px;
+    font-family:ui-monospace,monospace; font-size:11px; color:#8a94a3; white-space:pre-wrap;
+    word-break:break-all; max-height:200px; overflow-y:auto; line-height:1.6; }
+  .inc-link { color:#60a5fa; text-decoration:none; font-family:ui-monospace,monospace; cursor:pointer; }
+  .inc-link:hover { text-decoration:underline; color:#93c5fd; }
   /* ---- Simulator panel ---- */
   .sim-panel { background:#171b21; border:1px solid #232831; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
   .sim-panel-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; cursor:pointer; user-select:none; }
@@ -317,7 +363,7 @@ async function load() {
 
     const rows = (incRes.result || []).map(i => `
       <tr>
-        <td><code>${i.number}</code></td>
+        <td><a class="inc-link" onclick="showIncident('${escHtml(i.sys_id)}')">${escHtml(i.number)}</a></td>
         <td><span class="pill ${sevClass(i.severity)}">${sevLabel(i.severity)}</span></td>
         <td>${i.u_error_code||'-'}</td>
         <td>${i.u_app_name||'-'}</td>
@@ -358,6 +404,132 @@ async function resetAll() {
 
 load();
 setInterval(load, 2000);
+
+// ---- Incident detail drawer ----
+async function showIncident(sysId) {
+  const overlay = document.getElementById('drawer-overlay');
+  const drawer  = document.getElementById('incident-drawer');
+  const body    = document.getElementById('drawer-body');
+
+  // open immediately with loading state
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+  document.getElementById('d-number').textContent = '…';
+  document.getElementById('d-short-desc').textContent = '';
+  body.innerHTML = '<div class="muted" style="text-align:center;padding:40px 0">Loading…</div>';
+
+  try {
+    const res = await fetch(`${SN}/api/now/table/incident/${encodeURIComponent(sysId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { result: i } = await res.json();
+    renderDrawer(i);
+  } catch (e) {
+    body.innerHTML = `<div class="muted" style="padding:20px">Failed to load incident: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('incident-drawer').classList.remove('open');
+}
+
+// close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+function renderDrawer(i) {
+  document.getElementById('d-number').textContent = i.number;
+  document.getElementById('d-short-desc').textContent = i.short_description || '';
+
+  const conf = i.u_agent_confidence != null ? Number(i.u_agent_confidence) : null;
+  const confCls = conf == null ? '' : conf >= 0.85 ? 'conf-high' : conf >= 0.75 ? 'conf-mid' : 'conf-low';
+
+  const notes = (i.work_notes || []);
+  const notesHtml = notes.length
+    ? `<ul class="drawer-notes-list">${[...notes].reverse().map(n => {
+        const cls = noteClass(n.note);
+        const ts  = new Date(n.at).toLocaleTimeString();
+        return `<li class="${cls}"><span class="note-time">${ts}</span> ${escHtml(n.note)}</li>`;
+      }).join('')}</ul>`
+    : '<span class="muted" style="font-size:12px">No work notes.</span>';
+
+  const stackTrace = i.u_stack_trace
+    ? `<div class="drawer-section">
+        <div class="drawer-section-title">Stack Trace</div>
+        <div class="stack-trace">${escHtml(i.u_stack_trace)}</div>
+       </div>`
+    : '';
+
+  document.getElementById('drawer-body').innerHTML = `
+    <!-- Status row -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+      <span class="pill ${sevClass(i.severity)}">${sevLabel(i.severity)}</span>
+      ${decisionPill(i.u_decision_source)}
+      <span class="pill ${i.state === 'New' ? 'new' : 'p4'}">${escHtml(i.state)}</span>
+      <span class="muted" style="font-size:11px;margin-left:auto">Opened ${new Date(i.opened_at).toLocaleString()}</span>
+    </div>
+
+    <!-- AI confidence -->
+    ${conf != null ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">AI Confidence</div>
+      <div class="conf-big">
+        <span class="conf-score">${(conf * 100).toFixed(0)}%</span>
+        <div class="conf-bar-big"><div class="conf-fill-big ${confCls}" style="width:${(conf*100).toFixed(0)}%"></div></div>
+      </div>
+    </div>` : ''}
+
+    <!-- Core fields -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Incident Details</div>
+      <div class="drawer-grid">
+        <div class="drawer-field">
+          <div class="lbl">Error Code</div>
+          <div class="val mono">${escHtml(i.u_error_code || '—')}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">Occurrences</div>
+          <div class="val">${i.u_occurrence_count}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">Application</div>
+          <div class="val">${escHtml(i.u_app_name || '—')}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">App Node</div>
+          <div class="val mono">${escHtml(i.u_app_node || '—')}</div>
+        </div>
+        <div class="drawer-field full">
+          <div class="lbl">Process / Activity</div>
+          <div class="val mono">${escHtml(i.u_process_name || '—')} › ${escHtml(i.u_activity_name || '—')}</div>
+        </div>
+        <div class="drawer-field full">
+          <div class="lbl">Error Message</div>
+          <div class="val">${escHtml(i.description || '—')}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">First Seen</div>
+          <div class="val">${new Date(i.u_first_seen || i.opened_at).toLocaleString()}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">Last Seen</div>
+          <div class="val">${new Date(i.u_last_seen || i.sys_updated_on).toLocaleString()}</div>
+        </div>
+        <div class="drawer-field full">
+          <div class="lbl">Correlation ID</div>
+          <div class="val mono">${escHtml(i.u_correlation_id || '—')}</div>
+        </div>
+      </div>
+    </div>
+
+    ${stackTrace}
+
+    <!-- Work notes / AI reasoning -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Work Notes &amp; AI Reasoning (${notes.length})</div>
+      ${notesHtml}
+    </div>
+  `;
+}
 
 // ---- Simulator UI ----
 let simMode = 'storm';
@@ -514,6 +686,21 @@ function stopSimulator() {
   if (simAbortCtrl) simAbortCtrl.abort();
 }
 </script>
+
+<!-- Incident detail drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="incident-drawer">
+  <div class="drawer-header">
+    <div class="drawer-header-info">
+      <div class="drawer-inc-num" id="d-number">—</div>
+      <div class="drawer-short-desc" id="d-short-desc"></div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()" title="Close">&#x2715;</button>
+  </div>
+  <div class="drawer-body" id="drawer-body">
+    <div class="muted" style="text-align:center;padding:40px 0">Loading…</div>
+  </div>
+</div>
 
 <!-- Neural-network background -->
 <canvas id="bg-canvas"></canvas>
