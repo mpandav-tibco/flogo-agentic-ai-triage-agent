@@ -330,7 +330,9 @@
           "fetch_incident",
           "reject_bad_data",
           "search_incidents",
-          "create_incident"
+          "create_incident",
+          "search_past_resolutions",
+          "update_incident_resolution"
         ]
       }
     }
