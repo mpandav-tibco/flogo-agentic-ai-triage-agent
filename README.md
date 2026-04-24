@@ -34,6 +34,7 @@ The same 50 events, now routed through the Flogo AI Agent:
      "reason": "Same BW-JDBC-100014 on OrderService, 15 occurrences in last 4 min" }
    ```
 4. **Act** — agent calls the right tool: `create_incident`, `append_occurrence`, or `reject_bad_data`
+5. **Recommend** — for every new unique incident, the agent searches past resolved tickets for the same error code, synthesises a resolution recommendation (likely cause, remediation steps, estimated effort), and attaches it directly to the ticket — visible in the dashboard drawer the moment the incident is created
 
 ### The Edge Cases (What Makes It Interesting)
 - **Same error, different app** — `BW-JDBC-100014` on `OrderService` vs `PaymentService` are correctly treated as **two separate incidents**. A rule engine would merge them.
@@ -56,10 +57,12 @@ BW6 Error Event
 |  1. Validate payload    |
 |  2. AgenticAI Activity  |<---> Ollama / OpenAI / Azure OpenAI
 |     + MCP Tools         |
-|       |- search_incidents|
-|       |- create_incident |<---> Mock ServiceNow  (port 8081)
-|       |- append_occurrence
-|       +- reject_bad_data |
+|       |- search_incidents          |
+|       |- create_incident           |<---> Mock ServiceNow  (port 8081)
+|       |- append_occurrence         |
+|       |- reject_bad_data           |
+|       |- search_past_resolutions   |
+|       +- update_incident_resolution|
 |  3. Return decision JSON |
 +-------------------------+
 ```
@@ -176,8 +179,60 @@ Click the panel header at any time to manually collapse or expand it.
 | **Confidence** | Number + colour bar: green ≥ 0.85, amber 0.75–0.84, red < 0.75 |
 | **Opened** | Relative timestamp |
 | **Work notes** | Click any row to expand the agent's full reasoning and audit trail |
+| **AI Resolution Recommendation** | Shown in the incident detail drawer for new incidents — likely cause, step-by-step remediation, effort estimate, and whether it's grounded in a past fix |
 
 Stats cards at the top update every 2 seconds: **Events received**, **Created (unique)**, **Duplicates merged**, **Bad data rejected**, **Noise reduction %**.
+
+---
+
+## 🧠 AI Resolution Recommendation
+
+When the agent creates a **new unique incident**, it doesn't stop at filing the ticket. It immediately:
+
+1. **Searches past resolutions** — queries closed/resolved incidents for the same error code to find what actually worked before
+2. **Synthesises a recommendation** — the LLM composes a structured suggestion: likely root cause, step-by-step remediation actions, a runbook reference, and estimated effort
+3. **Attaches it to the ticket** — the recommendation is persisted on the ServiceNow record and surfaced instantly in the dashboard incident drawer
+
+### Business value
+
+Traditional operations workflows require the on-call engineer to:
+
+- Open the ServiceNow portal and read the ticket
+- Search the knowledge base or runbook wiki manually
+- Grep Confluence / Slack history for what fixed this last time
+- Escalate if they don't know the system
+
+**With AI Resolution Recommendations the first responder opens the incident drawer and immediately sees:**
+
+| What they see | What it replaces |
+|---|---|
+| Likely root cause in plain English | Digging through stack traces |
+| Step-by-step remediation actions to try first | Hunting runbooks and wikis |
+| Estimated resolution effort (e.g. "15–30 min") | Gut feel / escalation |
+| "Based on past fix" badge when grounded in history | Slack archaeology |
+| AI disclaimer — sets correct expectations | Blind trust in automation |
+
+No extra browser tabs. No portal searches. The engineer can start acting in seconds, not minutes.
+
+### Example recommendation (rendered in drawer)
+
+```json
+{
+  "likely_cause": "JDBC connection pool exhausted — upstream query holding connections open past timeout",
+  "recommended_steps": [
+    "Check connection pool metrics in BW6 admin console",
+    "Identify and kill long-running queries in the database",
+    "Restart the OrderService BW6 process agent if pool does not recover",
+    "Consider increasing pool size from 10 to 20 as a short-term fix"
+  ],
+  "runbook_ref": "https://wiki.internal/bw6/jdbc-pool-exhaustion",
+  "estimated_effort": "15–30 min",
+  "based_on_past_fix": true,
+  "disclaimer": "AI-generated suggestion. Always validate against current environment state."
+}
+```
+
+*Visible in the incident detail drawer under **AI Resolution Recommendation** for every new unique incident.*
 
 ---
 
