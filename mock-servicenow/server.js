@@ -61,6 +61,7 @@ function newIncident(payload) {
         severity: resolveSeverity(payload),
         short_description: payload.short_description || '',
         description: payload.description || '',
+        u_stack_trace: payload.u_stack_trace || '',
         u_error_code: payload.u_error_code || '',
         u_app_name: payload.u_app_name || '',
         u_app_node: payload.u_app_node || '',
