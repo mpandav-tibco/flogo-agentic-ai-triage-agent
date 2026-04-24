@@ -122,6 +122,22 @@
     word-break:break-all; max-height:200px; overflow-y:auto; line-height:1.6; }
   .inc-link { color:#60a5fa; text-decoration:none; font-family:ui-monospace,monospace; cursor:pointer; }
   .inc-link:hover { text-decoration:underline; color:#93c5fd; }
+  /* ---- Resolution recommendation ---- */
+  .resolution-box { background:#0d1520; border:1px solid #1e3a5f; border-radius:8px; padding:14px 16px; }
+  .resolution-cause { font-size:12px; color:#c3c9d2; line-height:1.6; margin-bottom:10px; }
+  .resolution-steps { list-style:none; padding:0; margin:0 0 10px; }
+  .resolution-steps li { position:relative; padding:5px 8px 5px 20px; margin-bottom:4px;
+    background:#111a28; border-left:2px solid #1e4a7a; border-radius:0 6px 6px 0; font-size:12px; color:#c3c9d2; line-height:1.5; }
+  .resolution-steps li::before { content:counter(step); counter-increment:step; position:absolute;
+    left:-10px; top:6px; width:16px; height:16px; border-radius:50%; background:#1e4a7a;
+    color:#7dd3fc; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:16px; text-align:center; }
+  .resolution-steps { counter-reset:step; }
+  .resolution-meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .resolution-meta-item { font-size:11px; color:#545d6b; }
+  .resolution-meta-item span { color:#8a94a3; }
+  .resolution-disclaimer { font-size:10px; color:#545d6b; font-style:italic; border-top:1px solid #1d2430; padding-top:6px; margin-top:4px; }
+  .past-fix-badge { display:inline-block; padding:1px 7px; border-radius:999px; font-size:10px;
+    font-weight:600; background:#1a2030; color:#7dd3fc; margin-left:6px; vertical-align:middle; }
   /* ---- Simulator panel ---- */
   .sim-panel { background:#171b21; border:1px solid #232831; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
   .sim-panel-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; cursor:pointer; user-select:none; }
@@ -523,12 +539,41 @@ function renderDrawer(i) {
 
     ${stackTrace}
 
+    <!-- Resolution recommendation -->
+    ${renderResolution(i.u_resolution_recommendation)}
+
     <!-- Work notes / AI reasoning -->
     <div class="drawer-section">
       <div class="drawer-section-title">Work Notes &amp; AI Reasoning (${notes.length})</div>
       ${notesHtml}
     </div>
   `;
+}
+
+function renderResolution(raw) {
+  if (!raw) return '';
+  let r;
+  try { r = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return ''; }
+  if (!r || !r.likely_cause) return '';
+  const steps = (r.recommended_steps || []).map(s =>
+    `<li>${escHtml(s)}</li>`
+  ).join('');
+  const pastBadge = r.based_on_past_fix
+    ? '<span class="past-fix-badge">&#x27F3; based on past fix</span>' : '';
+  const runbook = r.runbook_ref
+    ? `<span class="resolution-meta-item">Runbook: <span>${escHtml(r.runbook_ref)}</span></span>` : '';
+  const effort = r.estimated_effort
+    ? `<span class="resolution-meta-item">Est. effort: <span>${escHtml(r.estimated_effort)}</span></span>` : '';
+  return `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Resolution Recommendation${pastBadge}</div>
+      <div class="resolution-box">
+        <div class="resolution-cause">${escHtml(r.likely_cause)}</div>
+        <ol class="resolution-steps">${steps}</ol>
+        <div class="resolution-meta">${runbook}${effort}</div>
+        <div class="resolution-disclaimer">${escHtml(r.disclaimer || 'AI-suggested — verify before applying in production.')}</div>
+      </div>
+    </div>`;
 }
 
 // ---- Simulator UI ----

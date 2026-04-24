@@ -1,460 +1,460 @@
 {
-    "imports": [
-        "github.com/project-flogo/flow",
-        "github.com/project-flogo/contrib/activity/noop",
-        "github.com/tibco/flogo-general/src/app/General/activity/log",
-        "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
-        "github.com/project-flogo/contrib/activity/actreturn",
-        "github.com/tibco/flogo-general/src/app/General/trigger/rest",
-        "github.com/project-flogo/contrib/function/coerce",
-        "github.com/project-flogo/contrib/function/string",
-        "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
-        "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
-    ],
-    "name": "ticket-triage-agent",
-    "description": "AI-powered triage for integration error events. The AI agent uses MCP tools (exposed by sn-mcp-wrapper) to search, create, merge, or reject ServiceNow incidents autonomously.",
-    "version": "1.0.0",
-    "type": "flogo:app",
-    "appModel": "1.1.1",
-    "tags": [],
-    "triggers": [
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "ticket-triage-agent",
+  "description": "AI-powered triage for integration error events. The AI agent uses MCP tools (exposed by sn-mcp-wrapper) to search, create, merge, or reject ServiceNow incidents autonomously.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Triage REST trigger (POST /triage)",
+      "settings": {
+        "port": 8080,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "TriageHTTPTrigger",
+      "handlers": [
         {
-            "ref": "#rest",
-            "name": "tibco-wi-rest",
-            "description": "Triage REST trigger (POST /triage)",
+          "description": "Entry flow: log event, run agent with MCP tools, return decision",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/triage",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
             "settings": {
-                "port": 8080,
-                "APISpecUpdate": false,
-                "swagger": "",
-                "swaggerVersion": "v2",
-                "authenticationType": "None",
-                "username": "",
-                "password": "",
-                "apiVersion": "1.0.0",
-                "secureConnection": false,
-                "serverKey": "",
-                "caCertificate": ""
+              "flowURI": "res://flow:triage-main"
             },
-            "id": "TriageHTTPTrigger",
-            "handlers": [
-                {
-                    "description": "Entry flow: log event, run agent with MCP tools, return decision",
-                    "settings": {
-                        "APISpecPath": "",
-                        "Method": "POST",
-                        "reqType": "application/json",
-                        "Path": "/triage",
-                        "OutputValidation": false
-                    },
-                    "action": {
-                        "ref": "github.com/project-flogo/flow",
-                        "settings": {
-                            "flowURI": "res://flow:triage-main"
-                        },
-                        "input": {
-                            "body": "=$.body",
-                            "headers": "=$.headers"
-                        },
-                        "output": {
-                            "code": "=$.code",
-                            "data": "=$.data"
-                        }
-                    },
-                    "reply": {
-                        "code": 200,
-                        "configureResponseCodes": false,
-                        "message": {}
-                    },
-                    "schemas": {
-                        "reply": {
-                            "data": {
-                                "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"TriageDecision\",\"properties\":{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"TriageDecision\",\"properties\":{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}}"
-                            },
-                            "responseBody": {
-                                "type": "json",
-                                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
-                                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
-                            }
-                        },
-                        "output": {
-                            "headers": {
-                                "type": "json",
-                                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
-                                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
-                            },
-                            "body": {
-                                "type": "json",
-                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"BW6ErrorEvent\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}},\"required\":[\"appName\",\"errorCode\",\"timestamp\"]}",
-                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"BW6ErrorEvent\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}},\"required\":[\"appName\",\"errorCode\",\"timestamp\"]}"
-                            }
-                        }
-                    },
-                    "name": "triage-main"
-                }
-            ]
-        }
-    ],
-    "resources": [
-        {
-            "id": "flow:triage-main",
-            "data": {
-                "name": "triage-main",
-                "description": "Entry flow: log event, run agent with MCP tools, return decision",
-                "links": [
-                    {
-                        "id": 1,
-                        "from": "StartActivity",
-                        "to": "LogEvent",
-                        "type": "label",
-                        "label": "StartActivity to LogEvent"
-                    },
-                    {
-                        "id": 2,
-                        "from": "LogEvent",
-                        "to": "TriageAgent",
-                        "type": "label",
-                        "label": "LogEvent to TriageAgent"
-                    },
-                    {
-                        "id": 3,
-                        "from": "TriageAgent",
-                        "to": "AuditLog",
-                        "type": "label",
-                        "label": "TriageAgent to AuditLog"
-                    },
-                    {
-                        "id": 4,
-                        "from": "AuditLog",
-                        "to": "Return",
-                        "type": "label",
-                        "label": "AuditLog to Return"
-                    }
-                ],
-                "tasks": [
-                    {
-                        "id": "StartActivity",
-                        "name": "StartActivity",
-                        "description": "NoOp Activity",
-                        "activity": {
-                            "ref": "#noop"
-                        }
-                    },
-                    {
-                        "id": "LogEvent",
-                        "name": "LogEvent",
-                        "description": "Log incoming event",
-                        "activity": {
-                            "ref": "#log",
-                            "input": {
-                                "Log Level": "INFO",
-                                "flowInfo": false,
-                                "message": "=string.concat('Triage event: ', coerce.toString($flow.body))",
-                                "logLevel": ""
-                            }
-                        }
-                    },
-                    {
-                        "id": "TriageAgent",
-                        "name": "TriageAgent",
-                        "description": "Agentic AI triage decision using MCP tools from bw6-sn-mcp-wrapper",
-                        "activity": {
-                            "ref": "#agentactivity",
-                            "settings": {
-                                "llmProviderConnection": "conn://075225de-9fdd-49f1-93cb-1cfffdd24b6b",
-                                "model": "=$property[\"LLM_MODEL\"]",
-                                "reasoning": "",
-                                "temperature": 0,
-                                "enableGuardrails": false,
-                                "rateLimit": 1000,
-                                "tokenLimit": 16384,
-                                "redactSensitiveData": true,
-                                "responseType": "JSON",
-                                "agentHandoffs": "",
-                                "mcpServers": [
-                                    "9ad67e43-f78e-4837-9f01-881d9036bcf0"
-                                ],
-                                "conversationStoreType": "None",
-                                "memoryMaxSize": 10,
-                                "systemPrompt": "You are a ServiceNow triage agent for TIBCO BusinessWorks 6 (BW6) error events. For each event you MUST execute the algorithm below exactly. Do not improvise.\n\n============================================================\nDECISION ALGORITHM (follow top-to-bottom, no shortcuts)\n============================================================\n\nSTEP 1 — VALIDATE\n  If event.appName is empty/missing OR event.errorCode is empty/missing OR event.timestamp is empty/missing:\n     -> call reject_bad_data(correlationId=event.correlationId, reason=\"Missing required fields appName and errorCode\", timestamp=event.timestamp, appName=event.appName, appNode=event.appNode, processName=event.processName, activityName=event.activityName, errorCode=event.errorCode, errorMsg=event.errorMsg)\n     -> then EMIT FINAL JSON with decision=\"BAD_DATA\", ticketId=null. STOP.\n  Else continue to STEP 2.\n\nSTEP 2 — SEARCH (MANDATORY before any create/append)\n  Call search_incidents(errorCode=event.errorCode, appName=event.appName, window_min=60).\n  The tool returns an object; the candidates array is at: response.result  (key is \"response\", then \"result\").\n  Let matches = <tool_result>.response.result   — this is the array of candidates.\n  Let N = length of matches.\n\nSTEP 3 — BRANCH ON N\n\n  CASE A:  N == 0   (matches is [] — the array has ZERO elements)\n     -> DECISION = NEW, confidence = 1.0\n     -> call create_incident(short_description=event.errorCode+\" in \"+event.appName, description=event.errorMsg, u_stack_trace=event.stackTrace, u_error_code=event.errorCode, u_app_name=event.appName, u_app_node=event.appNode, u_process_name=event.processName, u_activity_name=event.activityName, u_correlation_id=event.correlationId, urgency=\"2\", impact=\"2\", u_decision_source=\"agent-new\", u_agent_confidence=1.0, u_triage_reason=\"No open incidents matching errorCode and appName\")\n     -> ticketId = <create_incident_tool_result>.response.result.sys_id\n     -> EMIT FINAL JSON. STOP. DO NOT call append_occurrence.\n\n  CASE B:  N >= 1   (matches has ONE OR MORE elements)\n     -> Let c = matches[0]  (the best candidate)\n     -> EVALUATE match quality. Score confidence 0.0–1.0 using these criteria:\n          HIGH confidence (>= 0.85):  same processName AND same activityName AND same downstream URL in errorMsg\n          MEDIUM confidence (0.75–0.84): same processName but different downstream URL, OR same downstream URL but different processName\n          LOW confidence (< 0.75):  different processName AND different downstream URL in errorMsg, OR event errorMsg indicates intermittent/self-healing behaviour, OR severity escalated by 2+ levels vs candidate\n     -> If confidence >= 0.75:\n          -> DECISION = DUPLICATE_OF\n          -> call append_occurrence(sys_id=c.sys_id, occurrence_note=\"Seen again at \"+event.timestamp+\" on \"+event.appNode)\n          -> ticketId = <append_occurrence_tool_result>.response.result.sys_id\n          -> EMIT FINAL JSON. STOP.\n     -> If confidence < 0.75:\n          -> DECISION = NEW  (protect SLA — open separate ticket)\n          -> call create_incident(short_description=event.errorCode+\" in \"+event.appName, description=event.errorMsg, u_stack_trace=event.stackTrace, u_error_code=event.errorCode, u_app_name=event.appName, u_app_node=event.appNode, u_process_name=event.processName, u_activity_name=event.activityName, u_correlation_id=event.correlationId, urgency=\"2\", impact=\"1\", u_decision_source=\"agent-low-confidence\", u_agent_confidence=<your_score>, u_triage_reason=\"Low confidence match against \"+c.sys_id+\": different process/downstream — opening separate ticket to protect SLA\")\n          -> ticketId = <create_incident_tool_result>.response.result.sys_id\n          -> also call append_occurrence(sys_id=c.sys_id, occurrence_note=\"Agent flagged possible duplicate (low conf=\"+<your_score>+\"): new ticket \"+ticketId+\" opened. Same \"+event.errorCode+\" pattern but different process/downstream — creating new ticket to protect SLA.\")\n          -> EMIT FINAL JSON. STOP.\n\n============================================================\nABSOLUTE CONSTRAINTS (violation = protocol failure)\n============================================================\n- Exactly ONE create/append decision per event (low-confidence path calls both is the only exception).\n- Never emit the final JSON before the action tool has returned.\n- ticketId is a raw string sys_id (no quotes around the word null, no string \"null\"). ticketId is JSON null only for BAD_DATA.\n\n============================================================\nTOOL SIGNATURES\n============================================================\n- search_incidents(errorCode, appName, window_min) -> { response: { result: [candidates...] } }. Access array as <result>.response.result. Each candidate has: sys_id, u_error_code, u_app_name, u_app_node, u_process_name, opened_at, active, u_occurrence_count.\n- create_incident(short_description, description, u_stack_trace?, u_error_code, u_app_name, u_app_node?, u_process_name?, u_activity_name?, u_correlation_id?, urgency?, impact?, u_decision_source?, u_agent_confidence?, u_triage_reason?, u_suggested_duplicate_of?) -> { response: { result: { sys_id, number, ... } } }. Access sys_id as <result>.response.result.sys_id.\n- append_occurrence(sys_id, occurrence_note?) -> { response: { result: { sys_id, number, u_occurrence_count, ... } } }. Access sys_id as <result>.response.result.sys_id.\n- reject_bad_data(correlationId, reason, timestamp?, appName?, appNode?, processName?, activityName?, errorCode?, errorMsg?) -> { response: { result: { status, count } } }.\n- fetch_incident(sys_id) -> { response: { result: <incident> } }.  (rarely needed)\n\n============================================================\nFINAL OUTPUT — STRICT JSON ONLY (no prose, no markdown, no code fences)\n============================================================\n{\"decision\":\"NEW|DUPLICATE_OF|BAD_DATA\",\"ticketId\":\"<sys_id or null>\",\"confidence\":<0.0-1.0>,\"reason\":\"<one short sentence explaining your confidence score>\"}"
-                            },
-                            "input": {
-                                "userPrompt": "=string.concat('Triage this BW6 error event and act via MCP tools. Event: ', coerce.toString($flow.body))",
-                                "conversationId": "=coerce.toString($flow.body.correlationId)"
-                            }
-                        }
-                    },
-                    {
-                        "id": "AuditLog",
-                        "name": "AuditLog",
-                        "description": "Log agent outcome for audit",
-                        "activity": {
-                            "ref": "#log",
-                            "input": {
-                                "Log Level": "INFO",
-                                "flowInfo": false,
-                                "message": "=string.concat('AUDIT triage outcome: ', coerce.toString($activity[TriageAgent]))",
-                                "logLevel": ""
-                            }
-                        }
-                    },
-                    {
-                        "id": "Return",
-                        "name": "Return",
-                        "description": "Return agent decision to caller",
-                        "activity": {
-                            "ref": "#actreturn",
-                            "settings": {
-                                "mappings": {
-                                    "code": 200,
-                                    "data": "=$activity[TriageAgent]"
-                                }
-                            }
-                        }
-                    }
-                ],
-                "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ0V2ZW50Ijp7IngiOjE1MSwieSI6NDN9LCJUcmlhZ2VBZ2VudCI6eyJ4IjozNDcsInkiOjQwfSwiQXVkaXRMb2ciOnsieCI6NTQ3LCJ5Ijo0MH0sIlJldHVybiI6eyJ4Ijo3NDksInkiOjQwfX0=",
-                "metadata": {
-                    "input": [
-                        {
-                            "name": "headers",
-                            "type": "object",
-                            "schema": {
-                                "type": "json",
-                                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
-                            }
-                        },
-                        {
-                            "name": "body",
-                            "type": "object",
-                            "schema": {
-                                "type": "json",
-                                "value": "{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}}"
-                            }
-                        },
-                        {
-                            "name": "requestURI",
-                            "type": "string"
-                        },
-                        {
-                            "name": "method",
-                            "type": "string"
-                        }
-                    ],
-                    "output": [
-                        {
-                            "name": "code",
-                            "type": "integer"
-                        },
-                        {
-                            "name": "data",
-                            "type": "object",
-                            "schema": {
-                                "type": "json",
-                                "value": "{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}"
-                            }
-                        }
-                    ],
-                    "fe_metadata": {
-                        "input": "{\"type\":\"object\",\"title\":\"TriageHTTPTrigger\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"BW6ErrorEvent\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}},\"required\":[\"appName\",\"errorCode\",\"timestamp\"]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
-                        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"TriageDecision\",\"properties\":{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}}},\"required\":[]}"
-                    }
-                },
-                "explicitReply": true
+            "input": {
+              "body": "=$.body",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
             }
-        }
-    ],
-    "properties": [
-        {
-            "name": "AgenticAI.LLMConn.LLM_Provider",
-            "type": "string",
-            "value": "OpenAI"
-        },
-        {
-            "name": "AgenticAI.LLMConn.API_Key",
-            "type": "string",
-            "value": "SECRET:Z/NDrHR6qSpQf3gQgGgbpkvP8iicUqdOqudfJXVV0KEwOxMYx3si/x/2iTlgNSabK1Qi9+kCik29tFX5+wu8OzCflTutJeD6nQ=="
-        },
-        {
-            "name": "AgenticAI.LLMConn.LLM_Base_URL",
-            "type": "string",
-            "value": "https://ollama.com/v1"
-        },
-        {
-            "name": "CONFIDENCE_FLOOR",
-            "type": "float64",
-            "value": 0.75
-        },
-        {
-            "name": "LLM_MODEL",
-            "type": "string",
-            "value": "deepseek-v3.1:671b-cloud"
-        },
-        {
-            "name": "SN_SEARCH_WINDOW_MIN",
-            "type": "float64",
-            "value": 60
-        }
-    ],
-    "connections": {
-        "075225de-9fdd-49f1-93cb-1cfffdd24b6b": {
-            "id": "075225de-9fdd-49f1-93cb-1cfffdd24b6b",
-            "name": "LLMConn",
-            "ref": "#llmprovider",
-            "isGlobal": false,
-            "settings": {
-                "name": "LLMConn",
-                "description": "Your llmprovider Connector",
-                "llmProvider": "=$property[\"AgenticAI.LLMConn.LLM_Provider\"]",
-                "anthropicProvider": "Default",
-                "apiKey": "=$property[\"AgenticAI.LLMConn.API_Key\"]",
-                "llmProviderUrl": "=$property[\"AgenticAI.LLMConn.LLM_Base_URL\"]"
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"TriageDecision\",\"properties\":{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"TriageDecision\",\"properties\":{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"BW6ErrorEvent\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}},\"required\":[\"appName\",\"errorCode\",\"timestamp\"]}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"BW6ErrorEvent\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}},\"required\":[\"appName\",\"errorCode\",\"timestamp\"]}"
+              }
             }
-        },
-        "9ad67e43-f78e-4837-9f01-881d9036bcf0": {
-            "id": "9ad67e43-f78e-4837-9f01-881d9036bcf0",
-            "name": "SNMCPClient",
-            "ref": "#mcpserverconfig",
-            "isGlobal": false,
-            "settings": {
-                "name": "SNMCPClient",
-                "description": "Your mcpserverconfig Connector",
-                "serverType": "http",
-                "serverUrl": "http://localhost:9090/mcp",
-                "httpTransportType": "streamable",
-                "authType": "None",
-                "authToken": "",
-                "selectedTools": [
-                    "append_occurrence",
-                    "fetch_incident",
-                    "reject_bad_data",
-                    "search_incidents",
-                    "create_incident"
-                ]
-            }
+          },
+          "name": "triage-main"
         }
-    },
-    "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTMiLCJ0YWciOiIxLjYuMTMtYjAzIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4xIiwidGFnIjoiMC45LjEtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
-    "metadata": {
-        "endpoints": [
-            {
-                "protocol": "http",
-                "port": "8080",
-                "spec": {
-                    "name": "ticket-triage-agent",
-                    "version": "1.0.0"
-                },
-                "title": "TriageHTTPTrigger",
-                "swagger": {
-                    "swagger": "2.0",
-                    "info": {
-                        "title": "ticket-triage-agent",
-                        "version": "1.0.0",
-                        "description": "Triage REST trigger (POST /triage)"
-                    },
-                    "paths": {
-                        "/triage": {
-                            "post": {
-                                "summary": "triage-main",
-                                "operationId": "post_triage",
-                                "parameters": [
-                                    {
-                                        "name": "Authorization",
-                                        "in": "header",
-                                        "description": "Request parameter",
-                                        "required": false,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "name": "body",
-                                        "in": "body",
-                                        "description": "request body parameter",
-                                        "required": true,
-                                        "schema": {
-                                            "$ref": "#/definitions/schema1"
-                                        }
-                                    }
-                                ],
-                                "responses": {
-                                    "200": {
-                                        "description": "Rest Response",
-                                        "schema": {
-                                            "$ref": "#/definitions/schema2"
-                                        }
-                                    }
-                                },
-                                "description": "Entry flow: log event, run agent with MCP tools, return decision",
-                                "consumes": [
-                                    "application/json"
-                                ]
-                            }
-                        }
-                    },
-                    "definitions": {
-                        "schema1": {
-                            "type": "object",
-                            "title": "BW6ErrorEvent",
-                            "properties": {
-                                "timestamp": {
-                                    "type": "string"
-                                },
-                                "correlationId": {
-                                    "type": "string"
-                                },
-                                "appName": {
-                                    "type": "string"
-                                },
-                                "appNode": {
-                                    "type": "string"
-                                },
-                                "processName": {
-                                    "type": "string"
-                                },
-                                "activityName": {
-                                    "type": "string"
-                                },
-                                "errorCode": {
-                                    "type": "string"
-                                },
-                                "errorMsg": {
-                                    "type": "string"
-                                },
-                                "stackTrace": {
-                                    "type": "string"
-                                },
-                                "severity": {
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "appName",
-                                "errorCode",
-                                "timestamp"
-                            ]
-                        },
-                        "schema2": {
-                            "type": "object",
-                            "title": "TriageDecision",
-                            "properties": {
-                                "decision": {
-                                    "type": "string"
-                                },
-                                "ticketId": {
-                                    "type": "string"
-                                },
-                                "confidence": {
-                                    "type": "number"
-                                },
-                                "reason": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        ],
-        "flogoVersion": "2.26.3"
+      ]
     }
+  ],
+  "resources": [
+    {
+      "id": "flow:triage-main",
+      "data": {
+        "name": "triage-main",
+        "description": "Entry flow: log event, run agent with MCP tools, return decision",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogEvent",
+            "type": "label",
+            "label": "StartActivity to LogEvent"
+          },
+          {
+            "id": 2,
+            "from": "LogEvent",
+            "to": "TriageAgent",
+            "type": "label",
+            "label": "LogEvent to TriageAgent"
+          },
+          {
+            "id": 3,
+            "from": "TriageAgent",
+            "to": "AuditLog",
+            "type": "label",
+            "label": "TriageAgent to AuditLog"
+          },
+          {
+            "id": 4,
+            "from": "AuditLog",
+            "to": "Return",
+            "type": "label",
+            "label": "AuditLog to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogEvent",
+            "name": "LogEvent",
+            "description": "Log incoming event",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat('Triage event: ', coerce.toString($flow.body))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "TriageAgent",
+            "name": "TriageAgent",
+            "description": "Agentic AI triage decision using MCP tools from bw6-sn-mcp-wrapper",
+            "activity": {
+              "ref": "#agentactivity",
+              "settings": {
+                "llmProviderConnection": "conn://075225de-9fdd-49f1-93cb-1cfffdd24b6b",
+                "model": "=$property[\"LLM_MODEL\"]",
+                "reasoning": "",
+                "temperature": 0,
+                "enableGuardrails": false,
+                "rateLimit": 1000,
+                "tokenLimit": 16384,
+                "redactSensitiveData": true,
+                "responseType": "JSON",
+                "agentHandoffs": "",
+                "mcpServers": [
+                  "9ad67e43-f78e-4837-9f01-881d9036bcf0"
+                ],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10,
+                "systemPrompt": "You are a ServiceNow triage agent for TIBCO BusinessWorks 6 (BW6) error events. For each event you MUST execute the algorithm below exactly. Do not improvise.\n\n============================================================\nDECISION ALGORITHM (follow top-to-bottom, no shortcuts)\n============================================================\n\nSTEP 1 \u2014 VALIDATE\n  If event.appName is empty/missing OR event.errorCode is empty/missing OR event.timestamp is empty/missing:\n     -> call reject_bad_data(correlationId=event.correlationId, reason=\"Missing required fields appName and errorCode\", timestamp=event.timestamp, appName=event.appName, appNode=event.appNode, processName=event.processName, activityName=event.activityName, errorCode=event.errorCode, errorMsg=event.errorMsg)\n     -> then EMIT FINAL JSON with decision=\"BAD_DATA\", ticketId=null. STOP.\n  Else continue to STEP 2.\n\nSTEP 2 \u2014 SEARCH (MANDATORY before any create/append)\n  Call search_incidents(errorCode=event.errorCode, appName=event.appName, window_min=60).\n  The tool returns an object; the candidates array is at: response.result  (key is \"response\", then \"result\").\n  Let matches = <tool_result>.response.result   \u2014 this is the array of candidates.\n  Let N = length of matches.\n\nSTEP 3 \u2014 BRANCH ON N\n\n  CASE A:  N == 0   (matches is [] \u2014 the array has ZERO elements)\n     -> DECISION = NEW, confidence = 1.0\n     -> call create_incident(short_description=event.errorCode+\" in \"+event.appName, description=event.errorMsg, u_stack_trace=event.stackTrace, u_error_code=event.errorCode, u_app_name=event.appName, u_app_node=event.appNode, u_process_name=event.processName, u_activity_name=event.activityName, u_correlation_id=event.correlationId, urgency=\"2\", impact=\"2\", u_decision_source=\"agent-new\", u_agent_confidence=1.0, u_triage_reason=\"No open incidents matching errorCode and appName\")\n     -> ticketId = <create_incident_tool_result>.response.result.sys_id\n     -> Continue to STEP 4. DO NOT call append_occurrence.\n\n  CASE B:  N >= 1   (matches has ONE OR MORE elements)\n     -> Let c = matches[0]  (the best candidate)\n     -> EVALUATE match quality. Score confidence 0.0\u20131.0 using these criteria:\n          HIGH confidence (>= 0.85):  same processName AND same activityName AND same downstream URL in errorMsg\n          MEDIUM confidence (0.75\u20130.84): same processName but different downstream URL, OR same downstream URL but different processName\n          LOW confidence (< 0.75):  different processName AND different downstream URL in errorMsg, OR event errorMsg indicates intermittent/self-healing behaviour, OR severity escalated by 2+ levels vs candidate\n     -> If confidence >= 0.75:\n          -> DECISION = DUPLICATE_OF\n          -> call append_occurrence(sys_id=c.sys_id, occurrence_note=\"Seen again at \"+event.timestamp+\" on \"+event.appNode)\n          -> ticketId = <append_occurrence_tool_result>.response.result.sys_id\n          -> Continue to STEP 4.\n     -> If confidence < 0.75:\n          -> DECISION = NEW  (protect SLA \u2014 open separate ticket)\n          -> call create_incident(short_description=event.errorCode+\" in \"+event.appName, description=event.errorMsg, u_stack_trace=event.stackTrace, u_error_code=event.errorCode, u_app_name=event.appName, u_app_node=event.appNode, u_process_name=event.processName, u_activity_name=event.activityName, u_correlation_id=event.correlationId, urgency=\"2\", impact=\"1\", u_decision_source=\"agent-low-confidence\", u_agent_confidence=<your_score>, u_triage_reason=\"Low confidence match against \"+c.sys_id+\": different process/downstream \u2014 opening separate ticket to protect SLA\")\n          -> ticketId = <create_incident_tool_result>.response.result.sys_id\n          -> also call append_occurrence(sys_id=c.sys_id, occurrence_note=\"Agent flagged possible duplicate (low conf=\"+<your_score>+\"): new ticket \"+ticketId+\" opened. Same \"+event.errorCode+\" pattern but different process/downstream \u2014 creating new ticket to protect SLA.\")\n          -> Continue to STEP 4.\n\nSTEP 4 \u2014 RESOLUTION RECOMMENDATION (MANDATORY for all non-BAD_DATA decisions)\n  4a. Call search_past_resolutions(errorCode=event.errorCode) to check if this error has been resolved before.\n      Let pastFixes = <tool_result>.response.result   (may be empty array []).\n  4b. Compose a resolution object:\n      - likely_cause: 1-2 sentences explaining the most probable root cause based on the errorCode, errorMsg, and stackTrace.\n      - recommended_steps: 3-5 specific, actionable steps an ops engineer should follow RIGHT NOW. Be concrete \u2014 reference BW6/TIBCO config names, commands, or checks. If pastFixes is non-empty, incorporate what fixed it previously.\n      - runbook_ref: if pastFixes contains a runbook_ref value, carry it forward; otherwise null.\n      - estimated_effort: realistic time estimate (e.g. \"10 min\", \"30 min\").\n      - based_on_past_fix: true if you referenced pastFixes data, false otherwise.\n      - disclaimer: ALWAYS set to \"AI-suggested \u2014 verify before applying in production.\"\n  4c. Persist the resolution on the ticket:\n      - If DECISION == NEW (or low-conf NEW): include u_resolution_recommendation=<JSON stringified resolution> in the create_incident call (or update via a second create call if already created). Actually: pass u_resolution_recommendation as a JSON string in the create_incident call above in STEP 3 \u2014 re-issue the create_incident with the resolution field.\n      - SHORTCUT: To avoid two create_incident calls, in STEP 3 CASE A and CASE B low-conf, defer the create_incident call until STEP 4 is composed, then include u_resolution_recommendation in the single create_incident call.\n      - If DECISION == DUPLICATE_OF: skip \u2014 resolution already lives on the parent ticket.\n  4d. Include the full resolution object in the FINAL JSON output.\n\n============================================================\nABSOLUTE CONSTRAINTS (violation = protocol failure)\n============================================================\n- Exactly ONE create/append decision per event (low-confidence path calling both is the only exception).\n- Never emit the final JSON before ALL action tools have returned.\n- ticketId is a raw string sys_id (no quotes around the word null, no string \"null\"). ticketId is JSON null only for BAD_DATA.\n- Resolution recommendation MUST NOT be omitted for NEW or DUPLICATE_OF decisions.\n- Resolution steps must be specific to BW6/TIBCO \u2014 no generic advice like \"check logs\".\n\n============================================================\nTOOL SIGNATURES\n============================================================\n- search_incidents(errorCode, appName, window_min) -> { response: { result: [candidates...] } }. Each candidate has: sys_id, u_error_code, u_app_name, u_app_node, u_process_name, opened_at, active, u_occurrence_count.\n- create_incident(short_description, description, u_stack_trace?, u_error_code, u_app_name, u_app_node?, u_process_name?, u_activity_name?, u_correlation_id?, urgency?, impact?, u_decision_source?, u_agent_confidence?, u_triage_reason?, u_resolution_recommendation?) -> { response: { result: { sys_id, number, ... } } }. Access sys_id as <result>.response.result.sys_id.\n- append_occurrence(sys_id, occurrence_note?) -> { response: { result: { sys_id, number, u_occurrence_count, ... } } }. Access sys_id as <result>.response.result.sys_id.\n- reject_bad_data(correlationId, reason, timestamp?, appName?, appNode?, processName?, activityName?, errorCode?, errorMsg?) -> { response: { result: { status, count } } }.\n- fetch_incident(sys_id) -> { response: { result: <incident> } }.  (rarely needed)\n- search_past_resolutions(errorCode) -> { response: { result: [{ sys_id, number, u_error_code, u_app_name, u_resolution_recommendation, sys_updated_on }] } }. Returns up to 5 recently resolved incidents for this errorCode. Call in STEP 4.\n\n============================================================\nFINAL OUTPUT \u2014 STRICT JSON ONLY (no prose, no markdown, no code fences)\n============================================================\n{\"decision\":\"NEW|DUPLICATE_OF|BAD_DATA\",\"ticketId\":\"<sys_id or null>\",\"confidence\":<0.0-1.0>,\"reason\":\"<one short sentence>\",\"resolution\":{\"likely_cause\":\"<string>\",\"recommended_steps\":[\"<step1>\",\"<step2>\",\"...\"],\"runbook_ref\":\"<string or null>\",\"estimated_effort\":\"<string>\",\"based_on_past_fix\":<true|false>,\"disclaimer\":\"AI-suggested \u2014 verify before applying in production.\"}}"
+              },
+              "input": {
+                "userPrompt": "=string.concat('Triage this BW6 error event and act via MCP tools. Event: ', coerce.toString($flow.body))",
+                "conversationId": "=coerce.toString($flow.body.correlationId)"
+              }
+            }
+          },
+          {
+            "id": "AuditLog",
+            "name": "AuditLog",
+            "description": "Log agent outcome for audit",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat('AUDIT triage outcome: ', coerce.toString($activity[TriageAgent]))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return agent decision to caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[TriageAgent]"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ0V2ZW50Ijp7IngiOjE1MSwieSI6NDN9LCJUcmlhZ2VBZ2VudCI6eyJ4IjozNDcsInkiOjQwfSwiQXVkaXRMb2ciOnsieCI6NTQ3LCJ5Ijo0MH0sIlJldHVybiI6eyJ4Ijo3NDksInkiOjQwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TriageHTTPTrigger\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"BW6ErrorEvent\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"correlationId\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"appNode\":{\"type\":\"string\"},\"processName\":{\"type\":\"string\"},\"activityName\":{\"type\":\"string\"},\"errorCode\":{\"type\":\"string\"},\"errorMsg\":{\"type\":\"string\"},\"stackTrace\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"}},\"required\":[\"appName\",\"errorCode\",\"timestamp\"]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"title\":\"TriageDecision\",\"properties\":{\"decision\":{\"type\":\"string\"},\"ticketId\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\"},\"reason\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.LLMConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.LLMConn.API_Key",
+      "type": "string",
+      "value": "SECRET:Z/NDrHR6qSpQf3gQgGgbpkvP8iicUqdOqudfJXVV0KEwOxMYx3si/x/2iTlgNSabK1Qi9+kCik29tFX5+wu8OzCflTutJeD6nQ=="
+    },
+    {
+      "name": "AgenticAI.LLMConn.LLM_Base_URL",
+      "type": "string",
+      "value": "https://ollama.com/v1"
+    },
+    {
+      "name": "CONFIDENCE_FLOOR",
+      "type": "float64",
+      "value": 0.75
+    },
+    {
+      "name": "LLM_MODEL",
+      "type": "string",
+      "value": "deepseek-v3.1:671b-cloud"
+    },
+    {
+      "name": "SN_SEARCH_WINDOW_MIN",
+      "type": "float64",
+      "value": 60
+    }
+  ],
+  "connections": {
+    "075225de-9fdd-49f1-93cb-1cfffdd24b6b": {
+      "id": "075225de-9fdd-49f1-93cb-1cfffdd24b6b",
+      "name": "LLMConn",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "LLMConn",
+        "description": "Your llmprovider Connector",
+        "llmProvider": "=$property[\"AgenticAI.LLMConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.LLMConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.LLMConn.LLM_Base_URL\"]"
+      }
+    },
+    "9ad67e43-f78e-4837-9f01-881d9036bcf0": {
+      "id": "9ad67e43-f78e-4837-9f01-881d9036bcf0",
+      "name": "SNMCPClient",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "SNMCPClient",
+        "description": "Your mcpserverconfig Connector",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9090/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": [
+          "append_occurrence",
+          "fetch_incident",
+          "reject_bad_data",
+          "search_incidents",
+          "create_incident"
+        ]
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTMiLCJ0YWciOiIxLjYuMTMtYjAzIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4xIiwidGFnIjoiMC45LjEtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "8080",
+        "spec": {
+          "name": "ticket-triage-agent",
+          "version": "1.0.0"
+        },
+        "title": "TriageHTTPTrigger",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "ticket-triage-agent",
+            "version": "1.0.0",
+            "description": "Triage REST trigger (POST /triage)"
+          },
+          "paths": {
+            "/triage": {
+              "post": {
+                "summary": "triage-main",
+                "operationId": "post_triage",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                },
+                "description": "Entry flow: log event, run agent with MCP tools, return decision",
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "title": "BW6ErrorEvent",
+              "properties": {
+                "timestamp": {
+                  "type": "string"
+                },
+                "correlationId": {
+                  "type": "string"
+                },
+                "appName": {
+                  "type": "string"
+                },
+                "appNode": {
+                  "type": "string"
+                },
+                "processName": {
+                  "type": "string"
+                },
+                "activityName": {
+                  "type": "string"
+                },
+                "errorCode": {
+                  "type": "string"
+                },
+                "errorMsg": {
+                  "type": "string"
+                },
+                "stackTrace": {
+                  "type": "string"
+                },
+                "severity": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "appName",
+                "errorCode",
+                "timestamp"
+              ]
+            },
+            "schema2": {
+              "type": "object",
+              "title": "TriageDecision",
+              "properties": {
+                "decision": {
+                  "type": "string"
+                },
+                "ticketId": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
 }

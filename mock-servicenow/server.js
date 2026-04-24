@@ -73,6 +73,7 @@ function newIncident(payload) {
         u_last_seen: now,
         u_decision_source: payload.u_decision_source || 'manual',
         u_agent_confidence: payload.u_agent_confidence ?? null,
+        u_resolution_recommendation: payload.u_resolution_recommendation ?? null,
         opened_at: now,
         sys_updated_on: now,
         work_notes: (() => {
@@ -149,6 +150,7 @@ app.patch('/api/now/table/incident/:sys_id', (req, res) => {
     }
     if (u_last_seen) inc.u_last_seen = u_last_seen;
     if (u_agent_confidence !== undefined) inc.u_agent_confidence = u_agent_confidence;
+    if (req.body.u_resolution_recommendation !== undefined) inc.u_resolution_recommendation = req.body.u_resolution_recommendation;
     inc.sys_updated_on = now;
 
     res.json({ result: inc });
@@ -185,6 +187,28 @@ app.post('/api/now/reset', (req, res) => {
 });
 
 app.get('/api/now/rejected', (req, res) => res.json({ result: rejected }));
+
+// --- Past resolutions lookup (for AI resolution recommendation grounding) ---
+// Returns resolved incidents matching errorCode so the agent can reference what fixed it before.
+app.get('/api/now/resolutions', (req, res) => {
+    const { errorCode, limit = '5' } = req.query;
+    if (!errorCode) return res.status(400).json({ error: { message: 'errorCode query param required' } });
+    const safeLimit = Math.min(20, Math.max(1, parseInt(limit, 10) || 5));
+    const result = Array.from(incidents.values())
+        .filter(i => i.u_error_code === errorCode && ['Resolved', 'Closed'].includes(i.state) && i.u_resolution_recommendation)
+        .sort((a, b) => new Date(b.sys_updated_on) - new Date(a.sys_updated_on))
+        .slice(0, safeLimit)
+        .map(i => ({
+            sys_id: i.sys_id,
+            number: i.number,
+            u_error_code: i.u_error_code,
+            u_app_name: i.u_app_name,
+            u_occurrence_count: i.u_occurrence_count,
+            u_resolution_recommendation: i.u_resolution_recommendation,
+            sys_updated_on: i.sys_updated_on
+        }));
+    res.json({ result });
+});
 
 app.get('/health', (req, res) => res.json({ status: 'up', service: 'mock-servicenow' }));
 

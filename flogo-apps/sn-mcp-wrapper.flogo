@@ -248,6 +248,49 @@
             }
           },
           "name": "tool-create-incident"
+        },
+        {
+          "description": "Fetch past resolved incidents for an error code to ground resolution recommendations",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "search_past_resolutions",
+            "handlerDescription": "Fetch past resolved ServiceNow incidents for a given errorCode. Returns up to 5 recently resolved incidents with their resolution recommendations \u2014 use to ground AI resolution advice in what actually worked before.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": true
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:tool-search-past-resolutions"
+            },
+            "input": {
+              "arguments": "=$.arguments",
+              "httpHeaders": "=$.httpHeaders"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"type\": \"object\", \"properties\": {\"errorCode\": {\"type\": \"string\"}}, \"required\": [\"errorCode\"]}",
+                "fe_metadata": "{\"type\": \"object\", \"properties\": {\"errorCode\": {\"type\": \"string\"}}, \"required\": [\"errorCode\"]}"
+              }
+            }
+          },
+          "name": "tool-search-past-resolutions"
         }
       ]
     }
@@ -1138,6 +1181,190 @@
           ],
           "fe_metadata": {
             "input": "{\"type\":\"object\",\"title\":\"SNMCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"short_description\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"u_error_code\":{\"type\":\"string\"},\"u_app_name\":{\"type\":\"string\"},\"u_app_node\":{\"type\":\"string\"},\"u_process_name\":{\"type\":\"string\"},\"u_activity_name\":{\"type\":\"string\"},\"u_correlation_id\":{\"type\":\"string\"},\"urgency\":{\"type\":\"string\"},\"impact\":{\"type\":\"string\"},\"u_decision_source\":{\"type\":\"string\"},\"u_agent_confidence\":{\"type\":\"number\"},\"u_triage_reason\":{\"type\":\"string\"},\"u_suggested_duplicate_of\":{\"type\":\"string\"}},\"required\":[\"short_description\",\"u_error_code\",\"u_app_name\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:tool-search-past-resolutions",
+      "data": {
+        "name": "tool-search-past-resolutions",
+        "description": "Search open incidents by errorCode and appName within a window",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CallSN",
+            "type": "label",
+            "label": "StartActivity to CallSN"
+          },
+          {
+            "id": 2,
+            "from": "CallSN",
+            "to": "Return",
+            "type": "label",
+            "label": "CallSN to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CallSN",
+            "name": "CallSN",
+            "description": "Call mock ServiceNow to fetch past resolutions for error code",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "asrDialog": "",
+                "swagger": "",
+                "authorization": false,
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "http://localhost:8081/api/now/resolutions",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "serviceUrl": "",
+                "multipartForm": {},
+                "queryParams": {
+                  "mapping": {
+                    "errorCode": "=coerce.toString($flow.arguments.errorCode)",
+                    "limit": "5"
+                  }
+                },
+                "headers": {
+                  "mapping": {
+                    "Accept": "application/json"
+                  }
+                },
+                "dynamicRequestHeaders": {
+                  "mapping": {}
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\": \"object\", \"properties\": {\"errorCode\": {\"type\": \"string\"}, \"limit\": {\"type\": \"string\"}}, \"required\": []}",
+                    "fe_metadata": "[{\"parameterName\": \"errorCode\", \"type\": \"string\"}, {\"parameterName\": \"limit\", \"type\": \"string\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return tool response",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": {
+                        "@conditional": [
+                          {
+                            "$activity[CallSN].statusCode == 200": "=coerce.toString($activity[CallSN].responseBody)"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "@conditional": [
+                          {
+                            "$activity[CallSN].statusCode != 200": "=coerce.toString($activity[CallSN].responseBody)"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxTTiI6eyJ4IjoyMjMsInkiOjMyfSwiUmV0dXJuIjp7IngiOjQzOSwieSI6Mzh9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SNMCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}},\"required\":[\"errorCode\",\"appName\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
             "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
           }
         }
