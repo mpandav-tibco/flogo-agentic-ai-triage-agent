@@ -242,8 +242,8 @@
             "output": {
               "arguments": {
                 "type": "json",
-                "value": "{\"type\":\"object\",\"properties\":{\"short_description\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"u_stack_trace\":{\"type\":\"string\"},\"u_error_code\":{\"type\":\"string\"},\"u_app_name\":{\"type\":\"string\"},\"u_app_node\":{\"type\":\"string\"},\"u_process_name\":{\"type\":\"string\"},\"u_activity_name\":{\"type\":\"string\"},\"u_correlation_id\":{\"type\":\"string\"},\"urgency\":{\"type\":\"string\"},\"impact\":{\"type\":\"string\"},\"u_decision_source\":{\"type\":\"string\"},\"u_agent_confidence\":{\"type\":\"number\"},\"u_triage_reason\":{\"type\":\"string\"},\"u_suggested_duplicate_of\":{\"type\":\"string\"}},\"required\":[\"short_description\",\"u_error_code\",\"u_app_name\"]}",
-                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"short_description\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"u_stack_trace\":{\"type\":\"string\"},\"u_error_code\":{\"type\":\"string\"},\"u_app_name\":{\"type\":\"string\"},\"u_app_node\":{\"type\":\"string\"},\"u_process_name\":{\"type\":\"string\"},\"u_activity_name\":{\"type\":\"string\"},\"u_correlation_id\":{\"type\":\"string\"},\"urgency\":{\"type\":\"string\"},\"impact\":{\"type\":\"string\"},\"u_decision_source\":{\"type\":\"string\"},\"u_agent_confidence\":{\"type\":\"number\"},\"u_triage_reason\":{\"type\":\"string\"},\"u_suggested_duplicate_of\":{\"type\":\"string\"}},\"required\":[\"short_description\",\"u_error_code\",\"u_app_name\"]}"
+                "value": "{\"type\": \"object\", \"properties\": {\"short_description\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"u_stack_trace\": {\"type\": \"string\"}, \"u_error_code\": {\"type\": \"string\"}, \"u_app_name\": {\"type\": \"string\"}, \"u_app_node\": {\"type\": \"string\"}, \"u_process_name\": {\"type\": \"string\"}, \"u_activity_name\": {\"type\": \"string\"}, \"u_correlation_id\": {\"type\": \"string\"}, \"urgency\": {\"type\": \"string\"}, \"impact\": {\"type\": \"string\"}, \"u_decision_source\": {\"type\": \"string\"}, \"u_agent_confidence\": {\"type\": \"number\"}, \"u_triage_reason\": {\"type\": \"string\"}, \"u_suggested_duplicate_of\": {\"type\": \"string\"}, \"u_resolution_recommendation\": {\"type\": \"string\"}}, \"required\": [\"short_description\", \"u_error_code\", \"u_app_name\"]}",
+                "fe_metadata": "{\"type\": \"object\", \"properties\": {\"short_description\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"u_stack_trace\": {\"type\": \"string\"}, \"u_error_code\": {\"type\": \"string\"}, \"u_app_name\": {\"type\": \"string\"}, \"u_app_node\": {\"type\": \"string\"}, \"u_process_name\": {\"type\": \"string\"}, \"u_activity_name\": {\"type\": \"string\"}, \"u_correlation_id\": {\"type\": \"string\"}, \"urgency\": {\"type\": \"string\"}, \"impact\": {\"type\": \"string\"}, \"u_decision_source\": {\"type\": \"string\"}, \"u_agent_confidence\": {\"type\": \"number\"}, \"u_triage_reason\": {\"type\": \"string\"}, \"u_suggested_duplicate_of\": {\"type\": \"string\"}, \"u_resolution_recommendation\": {\"type\": \"string\"}}, \"required\": [\"short_description\", \"u_error_code\", \"u_app_name\"]}"
               }
             }
           },
@@ -291,6 +291,49 @@
             }
           },
           "name": "tool-search-past-resolutions"
+        },
+        {
+          "description": "Patch an incident with AI resolution recommendation",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "update_incident_resolution",
+            "handlerDescription": "Attach an AI resolution recommendation to an existing incident. Call this at the end of STEP 4 for NEW decisions. Pass sys_id of the created ticket and resolution as a JSON string.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": true
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:tool-update-incident-resolution"
+            },
+            "input": {
+              "arguments": "=$.arguments",
+              "httpHeaders": "=$.httpHeaders"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"type\": \"object\", \"properties\": {\"sys_id\": {\"type\": \"string\"}, \"resolution\": {\"type\": \"string\"}}, \"required\": [\"sys_id\", \"resolution\"]}",
+                "fe_metadata": "{\"type\": \"object\", \"properties\": {\"sys_id\": {\"type\": \"string\"}, \"resolution\": {\"type\": \"string\"}}, \"required\": [\"sys_id\", \"resolution\"]}"
+              }
+            }
+          },
+          "name": "tool-update-incident-resolution"
         }
       ]
     }
@@ -1102,8 +1145,8 @@
                   },
                   "body": {
                     "type": "json",
-                    "value": "{\"type\":\"object\",\"properties\":{\"short_description\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"u_error_code\":{\"type\":\"string\"},\"u_app_name\":{\"type\":\"string\"},\"u_app_node\":{\"type\":\"string\"},\"u_process_name\":{\"type\":\"string\"},\"u_activity_name\":{\"type\":\"string\"},\"u_correlation_id\":{\"type\":\"string\"},\"urgency\":{\"type\":\"string\"},\"impact\":{\"type\":\"string\"},\"u_decision_source\":{\"type\":\"string\"},\"u_agent_confidence\":{\"type\":\"number\"},\"u_triage_reason\":{\"type\":\"string\"},\"u_suggested_duplicate_of\":{\"type\":\"string\"}}}",
-                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"short_description\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"u_error_code\":{\"type\":\"string\"},\"u_app_name\":{\"type\":\"string\"},\"u_app_node\":{\"type\":\"string\"},\"u_process_name\":{\"type\":\"string\"},\"u_activity_name\":{\"type\":\"string\"},\"u_correlation_id\":{\"type\":\"string\"},\"urgency\":{\"type\":\"string\"},\"impact\":{\"type\":\"string\"},\"u_decision_source\":{\"type\":\"string\"},\"u_agent_confidence\":{\"type\":\"number\"},\"u_triage_reason\":{\"type\":\"string\"},\"u_suggested_duplicate_of\":{\"type\":\"string\"}}}"
+                    "value": "{\"type\": \"object\", \"properties\": {\"short_description\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"u_error_code\": {\"type\": \"string\"}, \"u_app_name\": {\"type\": \"string\"}, \"u_app_node\": {\"type\": \"string\"}, \"u_process_name\": {\"type\": \"string\"}, \"u_activity_name\": {\"type\": \"string\"}, \"u_correlation_id\": {\"type\": \"string\"}, \"urgency\": {\"type\": \"string\"}, \"impact\": {\"type\": \"string\"}, \"u_decision_source\": {\"type\": \"string\"}, \"u_agent_confidence\": {\"type\": \"number\"}, \"u_triage_reason\": {\"type\": \"string\"}, \"u_suggested_duplicate_of\": {\"type\": \"string\"}, \"u_resolution_recommendation\": {\"type\": \"string\"}}}",
+                    "fe_metadata": "{\"type\": \"object\", \"properties\": {\"short_description\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"u_error_code\": {\"type\": \"string\"}, \"u_app_name\": {\"type\": \"string\"}, \"u_app_node\": {\"type\": \"string\"}, \"u_process_name\": {\"type\": \"string\"}, \"u_activity_name\": {\"type\": \"string\"}, \"u_correlation_id\": {\"type\": \"string\"}, \"urgency\": {\"type\": \"string\"}, \"impact\": {\"type\": \"string\"}, \"u_decision_source\": {\"type\": \"string\"}, \"u_agent_confidence\": {\"type\": \"number\"}, \"u_triage_reason\": {\"type\": \"string\"}, \"u_suggested_duplicate_of\": {\"type\": \"string\"}, \"u_resolution_recommendation\": {\"type\": \"string\"}}}"
                   }
                 },
                 "output": {
@@ -1365,6 +1408,179 @@
           ],
           "fe_metadata": {
             "input": "{\"type\":\"object\",\"title\":\"SNMCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}},\"required\":[\"errorCode\",\"appName\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:tool-update-incident-resolution",
+      "data": {
+        "name": "tool-update-incident-resolution",
+        "description": "Fetch one incident by sys_id",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CallSN",
+            "type": "label",
+            "label": "StartActivity to CallSN"
+          },
+          {
+            "id": 2,
+            "from": "CallSN",
+            "to": "Return",
+            "type": "label",
+            "label": "CallSN to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CallSN",
+            "name": "CallSN",
+            "description": "PATCH incident with AI resolution recommendation",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "asrDialog": "",
+                "swagger": "",
+                "authorization": false,
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "PATCH",
+                "Uri": "http://localhost:8081/api/now/table/incident/{sys_id}",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "serviceUrl": "",
+                "multipartForm": {},
+                "pathParams": {
+                  "mapping": {
+                    "sys_id": "=coerce.toString($flow.arguments.sys_id)"
+                  }
+                },
+                "headers": {
+                  "mapping": {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                  }
+                },
+                "dynamicRequestHeaders": {
+                  "mapping": {}
+                },
+                "body": "=object.create(\"u_resolution_recommendation\", coerce.toString($flow.arguments.resolution))"
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "pathParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"sys_id\":{\"type\":\"string\"}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"sys_id\",\"type\":\"string\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  },
+                  "body": {
+                    "type": "json",
+                    "value": "{\"type\": \"object\", \"properties\": {\"u_resolution_recommendation\": {\"type\": \"string\"}}}",
+                    "fe_metadata": "{\"type\": \"object\", \"properties\": {\"u_resolution_recommendation\": {\"type\": \"string\"}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return tool response",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": "=$activity[CallSN].responseBody"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxTTiI6eyJ4IjoyMjAsInkiOjQ4fSwiUmV0dXJuIjp7IngiOjQ5OSwieSI6NTF9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"sys_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SNMCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"sys_id\":{\"type\":\"string\"}},\"required\":[\"sys_id\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
             "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
           }
         }
