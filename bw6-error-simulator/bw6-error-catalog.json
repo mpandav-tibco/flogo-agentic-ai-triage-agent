@@ -8,19 +8,7 @@
         "appName": "OrderService",
         "appNodePrefix": "orderservice-appnode",
         "messageTemplate": "JDBC connection timeout after 30000 ms to oracle://prod-db-01:1521/ORCL (pool exhausted, active=50, idle=0)",
-        "stackTraceTemplate": "com.tibco.bw.palette.jdbc.JDBCPluginException: Unable to borrow connection from pool\n\tat com.tibco.bw.palette.jdbc.runtime.JDBCQueryActivity.eval(JDBCQueryActivity.java:214)\n\tat com.tibco.bw.runtime.ActivityEngine.invoke(ActivityEngine.java:98)\nCaused by: java.sql.SQLTimeoutException: ORA-03135: connection lost contact",
-        "resolution_hints": {
-            "likely_cause": "JDBC connection pool exhausted — all connections are in use and new requests are timing out waiting to borrow one.",
-            "recommended_steps": [
-                "Check current DB connection count: SELECT count(*) FROM v$session WHERE username='APP_USER'",
-                "Increase BW pool size: bw.connection.jdbc.maxConn (current: 50) — recommend 75–100 for this workload",
-                "Check for leaked connections: look for long-running transactions or unclosed result sets in BW process logs",
-                "If DB load is normal, restart the affected AppNode to flush stale pool entries",
-                "Add pool exhaustion alerting at 80% utilisation to catch this earlier next time"
-            ],
-            "runbook_ref": "KB0001234",
-            "estimated_effort": "15 min"
-        }
+        "stackTraceTemplate": "com.tibco.bw.palette.jdbc.JDBCPluginException: Unable to borrow connection from pool\n\tat com.tibco.bw.palette.jdbc.runtime.JDBCQueryActivity.eval(JDBCQueryActivity.java:214)\n\tat com.tibco.bw.runtime.ActivityEngine.invoke(ActivityEngine.java:98)\nCaused by: java.sql.SQLTimeoutException: ORA-03135: connection lost contact"
     },
     {
         "id": "E2",
@@ -31,19 +19,7 @@
         "appName": "InventoryService",
         "appNodePrefix": "inventoryservice-appnode",
         "messageTemplate": "JMS connection to tcp://ems-prod-01:7222 lost. Reconnect attempt 7 of 10 failed: Connection refused",
-        "stackTraceTemplate": "com.tibco.bw.palette.jms.JMSPluginException: Failed to reconnect to EMS broker\n\tat com.tibco.bw.palette.jms.runtime.JMSReceiverEventSource.onException(JMSReceiverEventSource.java:187)\nCaused by: javax.jms.JMSException: Connection closed by broker",
-        "resolution_hints": {
-            "likely_cause": "TIBCO EMS broker at tcp://ems-prod-01:7222 is refusing connections — broker may be restarting, overloaded, or the pod network policy is blocking the port.",
-            "recommended_steps": [
-                "Verify EMS broker status: tibemsd --status or check Kubernetes pod logs for ems-prod-01",
-                "Check broker connection limits: tibemsadmin> show server — look for 'connections' at max",
-                "If broker is healthy, check pod network policies for port 7222 between app and EMS namespaces",
-                "Increase BW reconnect attempts (bw.jms.reconnect.max) from 10 to 20 to allow broker more recovery time",
-                "BW will auto-reconnect once the broker is available — manual process restart may not be needed"
-            ],
-            "runbook_ref": "KB0002156",
-            "estimated_effort": "10 min"
-        }
+        "stackTraceTemplate": "com.tibco.bw.palette.jms.JMSPluginException: Failed to reconnect to EMS broker\n\tat com.tibco.bw.palette.jms.runtime.JMSReceiverEventSource.onException(JMSReceiverEventSource.java:187)\nCaused by: javax.jms.JMSException: Connection closed by broker"
     },
     {
         "id": "E3",
@@ -54,19 +30,7 @@
         "appName": "PaymentService",
         "appNodePrefix": "paymentservice-appnode",
         "messageTemplate": "Downstream service returned HTTP 502 Bad Gateway from https://partner.stripe.example/charge",
-        "stackTraceTemplate": "com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)",
-        "resolution_hints": {
-            "likely_cause": "Downstream payment gateway (Stripe partner endpoint) is returning 502 — likely a transient gateway overload or a deployment in progress on the partner side.",
-            "recommended_steps": [
-                "Check partner status page or Slack channel for known outage/maintenance",
-                "Review BW retry policy for InvokeRESTService — set retries=3 with exponential backoff (2s, 4s, 8s)",
-                "If sustained >5 min, activate circuit-breaker flag in BW app property: payment.gateway.circuitbreaker=true",
-                "Transactions in flight will be in error state — check BW process instance audit log and replay if needed",
-                "Alert payment ops team if error rate exceeds 10% of charge volume"
-            ],
-            "runbook_ref": "KB0003089",
-            "estimated_effort": "20 min"
-        }
+        "stackTraceTemplate": "com.tibco.bw.palette.rest.RESTPluginException: Non-2xx response from downstream\n\tat com.tibco.bw.palette.rest.runtime.InvokeRESTServiceActivity.processResponse(InvokeRESTServiceActivity.java:342)"
     },
     {
         "id": "E4",
@@ -77,19 +41,7 @@
         "appName": "ReportingService",
         "appNodePrefix": "reportingservice-appnode",
         "messageTemplate": "java.lang.OutOfMemoryError: Java heap space. AppNode heap=2048M, used=2047M",
-        "stackTraceTemplate": "java.lang.OutOfMemoryError: Java heap space\n\tat java.base/java.util.Arrays.copyOf(Arrays.java:3537)\n\tat com.tibco.bw.core.xml.XMLParserImpl.parse(XMLParserImpl.java:124)",
-        "resolution_hints": {
-            "likely_cause": "ReportingService AppNode has exhausted its 2 GB JVM heap while building the daily report — likely caused by a large XML payload being held in memory during parsing.",
-            "recommended_steps": [
-                "IMMEDIATE: Restart the affected AppNode to restore service — kubectl rollout restart deployment/reportingservice",
-                "Increase AppNode heap: set BW_JAVA_OPTS=-Xmx4096m in the deployment config and redeploy",
-                "Enable streaming XML processing in ParseXML activity to avoid loading the full document into memory",
-                "Add a daily report size guard: if input dataset > 500 MB, split into batches before processing",
-                "Capture heap dump before restart if possible for post-mortem: jcmd <pid> GC.heap_dump /tmp/oom.hprof"
-            ],
-            "runbook_ref": "KB0004012",
-            "estimated_effort": "30 min"
-        }
+        "stackTraceTemplate": "java.lang.OutOfMemoryError: Java heap space\n\tat java.base/java.util.Arrays.copyOf(Arrays.java:3537)\n\tat com.tibco.bw.core.xml.XMLParserImpl.parse(XMLParserImpl.java:124)"
     },
     {
         "id": "E5",
@@ -100,19 +52,7 @@
         "appName": "CustomerService",
         "appNodePrefix": "customerservice-appnode",
         "messageTemplate": "No route match for GET /customerz/123 (did you mean /customers/123?)",
-        "stackTraceTemplate": "com.tibco.bw.palette.http.HTTPPluginException: Route not found for request",
-        "resolution_hints": {
-            "likely_cause": "Caller is sending requests to a misspelled or outdated API path (/customerz/ instead of /customers/) — this is a client-side configuration error, not a BW fault.",
-            "recommended_steps": [
-                "Identify the calling application from BW access logs (check x-caller-id or source IP)",
-                "Notify the calling team to correct their endpoint URL from /customerz/ to /customers/",
-                "Add a redirect rule in the BW HTTP Receiver for common typos as a stopgap",
-                "Review API gateway / service mesh routing table to confirm correct paths are published",
-                "No BW restart required — this is informational only"
-            ],
-            "runbook_ref": "KB0005301",
-            "estimated_effort": "5 min"
-        }
+        "stackTraceTemplate": "com.tibco.bw.palette.http.HTTPPluginException: Route not found for request"
     },
     {
         "id": "E6",
@@ -123,18 +63,6 @@
         "appName": "PartnerIntegrationService",
         "appNodePrefix": "partner-appnode",
         "messageTemplate": "Malformed XML at line 42, column 17: unexpected token '<' after '<order>'",
-        "stackTraceTemplate": "javax.xml.stream.XMLStreamException: ParseError\n\tat com.tibco.bw.palette.xml.runtime.ParseXMLActivity.eval(ParseXMLActivity.java:156)",
-        "resolution_hints": {
-            "likely_cause": "Partner feed is sending malformed XML — likely an unescaped '<' character inside a data field, or a broken message split at a byte boundary.",
-            "recommended_steps": [
-                "Capture the raw payload: check BW process instance input in BWCE monitor for the failed execution",
-                "Validate payload against the agreed XSD schema using xmllint --schema orders.xsd <payload.xml>",
-                "Notify partner feed team with the raw payload and exact parse error for their fix",
-                "Add a schema validation pre-check in PartnerFeed.process.IngestOrders before ParseXML to reject bad messages early",
-                "Enable BW dead-letter queue for PartnerFeed to preserve failed messages for replay once partner fixes the feed"
-            ],
-            "runbook_ref": "KB0006445",
-            "estimated_effort": "20 min"
-        }
+        "stackTraceTemplate": "javax.xml.stream.XMLStreamException: ParseError\n\tat com.tibco.bw.palette.xml.runtime.ParseXMLActivity.eval(ParseXMLActivity.java:156)"
     }
 ]
